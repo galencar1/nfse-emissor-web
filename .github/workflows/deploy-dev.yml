@@ -8,6 +8,11 @@ on:
     branches:
       - develop
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
   deploy-dev:
     runs-on: ubuntu-latest
