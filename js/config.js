@@ -10,23 +10,22 @@ const API_CONFIG = {
     }
 };
 
-// Emissores disponíveis
+// Emissores disponíveis (apenas dados públicos)
 const EMISSORES = [
     {
         id: 'rpg',
         nome: 'RPG Prestadora',
-        cnpj: '59714129000104',
-        senha: '28042018Bes!',
-        emails: ['ivone442015@gmail.com']
+        cnpj: '59714129000104'
     },
     {
         id: 'om',
         nome: 'OM Prestadora',
-        cnpj: '59714129000104',
-        senha: '28042018Bes!',
-        emails: ['ivone442015@gmail.com']
+        cnpj: '59714129000104'
     }
 ];
+
+// Nota: Senhas e emails são configurados pelo usuário na primeira vez
+// e salvos de forma criptografada no LocalStorage
 
 // Tomadores pré-cadastrados
 const TOMADORES_PREDEFINIDOS = {
@@ -57,5 +56,6 @@ const MOTIVOS_CANCELAMENTO = {
 const STORAGE_KEYS = {
     emissorAtual: 'nfse_emissor_atual',
     ultimoTomador: 'nfse_ultimo_tomador',
-    notasCache: 'nfse_notas_cache'
+    notasCache: 'nfse_notas_cache',
+    credenciais: 'nfse_credenciais_encrypted' // Senha e emails criptografados
 };

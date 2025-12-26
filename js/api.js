@@ -5,6 +5,34 @@ class NFSeAPI {
         this.baseURL = API_CONFIG.baseURL;
     }
 
+    // Obter credenciais (senha e email) do localStorage
+    getCredenciais() {
+        try {
+            const encrypted = localStorage.getItem(STORAGE_KEYS.credenciais);
+            if (!encrypted) return null;
+            
+            // Decodificar de Base64 (ofuscação simples)
+            const decoded = atob(encrypted);
+            return JSON.parse(decoded);
+        } catch (e) {
+            console.error('Erro ao recuperar credenciais:', e);
+            return null;
+        }
+    }
+
+    // Salvar credenciais (senha e email) de forma ofuscada
+    salvarCredenciais(senha, email) {
+        const dados = {
+            senha: senha,
+            email: email,
+            timestamp: Date.now()
+        };
+        
+        // Codificar em Base64 (ofuscação simples - não é criptografia real)
+        const encoded = btoa(JSON.stringify(dados));
+        localStorage.setItem(STORAGE_KEYS.credenciais, encoded);
+    }
+
     // Obter emissor atual
     getEmissorAtual() {
         const emissorId = localStorage.getItem(STORAGE_KEYS.emissorAtual);
@@ -13,11 +41,15 @@ class NFSeAPI {
     }
 
     // Headers comuns
-    getHeaders(emissor) {
+    getHeaders(emissor, credenciais) {
+        if (!credenciais) {
+            throw new Error('Credenciais não configuradas');
+        }
+        
         return {
             'Content-Type': 'application/json',
             'X-NFSE-User': emissor.cnpj,
-            'X-NFSE-Pass': emissor.senha
+            'X-NFSE-Pass': credenciais.senha
         };
     }
 
@@ -28,9 +60,14 @@ class NFSeAPI {
             throw new Error('Nenhum emissor selecionado');
         }
 
+        const credenciais = this.getCredenciais();
+        if (!credenciais) {
+            throw new Error('Credenciais não configuradas. Configure suas credenciais primeiro.');
+        }
+
         const response = await fetch(`${this.baseURL}${API_CONFIG.endpoints.emit}`, {
             method: 'POST',
-            headers: this.getHeaders(emissor),
+            headers: this.getHeaders(emissor, credenciais),
             body: JSON.stringify(dados)
         });
 
@@ -49,9 +86,14 @@ class NFSeAPI {
             throw new Error('Nenhum emissor selecionado');
         }
 
+        const credenciais = this.getCredenciais();
+        if (!credenciais) {
+            throw new Error('Credenciais não configuradas. Configure suas credenciais primeiro.');
+        }
+
         const response = await fetch(`${this.baseURL}${API_CONFIG.endpoints.cancel}`, {
             method: 'POST',
-            headers: this.getHeaders(emissor),
+            headers: this.getHeaders(emissor, credenciais),
             body: JSON.stringify(dados)
         });
 
@@ -70,11 +112,16 @@ class NFSeAPI {
             throw new Error('Nenhum emissor selecionado');
         }
 
+        const credenciais = this.getCredenciais();
+        if (!credenciais) {
+            throw new Error('Credenciais não configuradas. Configure suas credenciais primeiro.');
+        }
+
         const url = `${this.baseURL}${API_CONFIG.endpoints.list}?pagina=${pagina}&limite=${limite}`;
         
         const response = await fetch(url, {
             method: 'GET',
-            headers: this.getHeaders(emissor)
+            headers: this.getHeaders(emissor, credenciais)
         });
 
         if (!response.ok) {

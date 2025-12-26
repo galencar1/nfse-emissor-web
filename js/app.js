@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initEmissores();
     initTomadorSelect();
     loadEmissorSalvo();
+    verificarCredenciais(); // Verificar se precisa configurar credenciais
 });
 
 // Inicializar seletor de emissores
@@ -192,8 +193,14 @@ async function emitirNota() {
 
     const emails = collectEmails('email-input');
     if (emails.length === 0) {
-        showToast('Email obrigatório', 'Adicione pelo menos um email para notificação', 'error');
-        return;
+        // Se não houver email digitado, usar o email das credenciais
+        const credenciais = api.getCredenciais();
+        if (credenciais && credenciais.email) {
+            emails.push(credenciais.email);
+        } else {
+            showToast('Email obrigatório', 'Adicione pelo menos um email para notificação', 'error');
+            return;
+        }
     }
 
     // Montar dados
@@ -260,8 +267,14 @@ async function cancelarNota() {
 
     const emails = collectEmails('email-cancel-input');
     if (emails.length === 0) {
-        showToast('Email obrigatório', 'Adicione pelo menos um email', 'error');
-        return;
+        // Se não houver email digitado, usar o email das credenciais
+        const credenciais = api.getCredenciais();
+        if (credenciais && credenciais.email) {
+            emails.push(credenciais.email);
+        } else {
+            showToast('Email obrigatório', 'Adicione pelo menos um email', 'error');
+            return;
+        }
     }
 
     // Montar dados
@@ -398,4 +411,55 @@ function nextPage() {
         paginaAtual++;
         carregarNotas();
     }
+}
+
+// CONFIGURAÇÃO DE CREDENCIAIS
+
+// Verificar se usuário já configurou credenciais
+function verificarCredenciais() {
+    const credenciais = api.getCredenciais();
+    if (!credenciais) {
+        mostrarModalConfig();
+    }
+}
+
+// Mostrar modal de configuração
+function mostrarModalConfig() {
+    document.getElementById('config-modal').classList.remove('hidden');
+}
+
+// Salvar credenciais
+function salvarCredenciais() {
+    const senha = document.getElementById('config-senha').value.trim();
+    const email = document.getElementById('config-email').value.trim();
+
+    // Validações
+    if (!senha) {
+        showToast('Senha obrigatória', 'Digite a senha da API', 'error');
+        return;
+    }
+
+    if (!email) {
+        showToast('Email obrigatório', 'Digite um email para notificações', 'error');
+        return;
+    }
+
+    // Validar email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showToast('Email inválido', 'Digite um email válido', 'error');
+        return;
+    }
+
+    // Salvar credenciais
+    api.salvarCredenciais(senha, email);
+
+    // Fechar modal
+    document.getElementById('config-modal').classList.add('hidden');
+
+    // Limpar campos
+    document.getElementById('config-senha').value = '';
+    document.getElementById('config-email').value = '';
+
+    showToast('✅ Credenciais salvas!', 'Você já pode usar o sistema', 'success');
 }
