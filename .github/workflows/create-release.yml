@@ -1,0 +1,73 @@
+name: Create Release Branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Create and push release branch
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          # Verificar se branch release existe
+          if git ls-remote --heads origin release | grep release; then
+            echo "Branch release já existe, fazendo merge de develop"
+            git checkout release
+            git merge develop --no-ff -m "chore: merge develop into release for version ${{ inputs.version }}"
+          else
+            echo "Criando nova branch release"
+            git checkout -b release
+          fi
+          
+          git push origin release
+          
+          echo "✅ Branch release atualizada"
+
+      - name: Create Pull Request to main
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚀 Release v${{ inputs.version }}',
+              head: 'release',
+              base: 'main',
+              body: `## Release v${{ inputs.version }}
+              
+              Esta release inclui todas as mudanças aprovadas em desenvolvimento.
+              
+              **Checklist:**
+              - [ ] Testado em homologação
+              - [ ] Changelog atualizado
+              - [ ] Versão atualizada
+              - [ ] Documentação atualizada
+              
+              **Deploy para produção após merge.**
+              `
+            });
+            
+            console.log('Pull Request criado:', pr.html_url);
+
+      - name: Summary
+        run: |
+          echo "### 🎉 Release Branch Created!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** release" >> $GITHUB_STEP_SUMMARY
+          echo "**Next:** Revisar e aprovar PR para main" >> $GITHUB_STEP_SUMMARY

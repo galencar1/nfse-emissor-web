@@ -1,0 +1,84 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Permitir deploy manual
+
+jobs:
+  deploy-prod:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://galencar1.github.io/nfse-emissor-web
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Configure API URL for Production
+        run: |
+          sed -i "s|baseURL: 'https://nfse-api-dev.onrender.com'|baseURL: 'https://nfse-api.onrender.com'|g" js/config.js
+          echo "✅ API URL configurada para PRODUÇÃO"
+
+      - name: Run tests (if any)
+        run: |
+          echo "🧪 Running tests..."
+          # npm test (quando tiver testes)
+
+      - name: Deploy to GitHub Pages (production)
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          exclude_assets: '.github,DEPLOYMENT.md,README.md'
+          commit_message: "🚀 Deploy production: ${{ github.event.head_commit.message }}"
+
+      - name: Create Production Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release v${{ github.run_number }}
+          body: |
+            ## 🚀 Production Release
+            
+            **Deployed:** ${{ github.event.head_commit.timestamp }}
+            **Commit:** ${{ github.sha }}
+            **Author:** ${{ github.event.head_commit.author.name }}
+            
+            ### Changes
+            ${{ github.event.head_commit.message }}
+            
+            ### URLs
+            - **App:** https://galencar1.github.io/nfse-emissor-web
+            - **API:** https://nfse-api.onrender.com
+          draft: false
+          prerelease: false
+
+      - name: Deployment Summary
+        run: |
+          echo "### 🎉 Production Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** Production" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** https://galencar1.github.io/nfse-emissor-web" >> $GITHUB_STEP_SUMMARY
+          echo "**API:** https://nfse-api.onrender.com" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** v${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify Success
+        if: success()
+        run: |
+          echo "✅ Deploy para produção realizado com sucesso!"
+          
+      - name: Notify Failure
+        if: failure()
+        run: |
+          echo "❌ Falha no deploy para produção!"
