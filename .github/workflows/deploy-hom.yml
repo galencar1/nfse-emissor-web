@@ -1,0 +1,65 @@
+name: Deploy to Homologation
+
+on:
+  push:
+    branches:
+      - release
+  pull_request:
+    branches:
+      - release
+
+jobs:
+  deploy-hom:
+    runs-on: ubuntu-latest
+    environment:
+      name: homologation
+      url: https://galencar1.github.io/nfse-emissor-web/hom
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Configure API URL for Homologation
+        run: |
+          sed -i "s|baseURL: 'https://nfse-api-dev.onrender.com'|baseURL: 'https://nfse-api-hom.onrender.com'|g" js/config.js
+          echo "✅ API URL configurada para HOMOLOGAÇÃO"
+
+      - name: Create build directory
+        run: |
+          mkdir -p build/hom
+          cp -r * build/hom/ 2>/dev/null || true
+          rm -rf build/hom/.git build/hom/.github build/hom/build
+
+      - name: Deploy to GitHub Pages (hom)
+        uses: peaceiris/actions-gh-pages@v3
+        if: github.event_name == 'push'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build
+          destination_dir: .
+          keep_files: true
+          commit_message: "🚀 Deploy homologation: ${{ github.event.head_commit.message }}"
+
+      - name: Deployment Summary
+        if: github.event_name == 'push'
+        run: |
+          echo "### 🚀 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** Homologation" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** https://galencar1.github.io/nfse-emissor-web/hom" >> $GITHUB_STEP_SUMMARY
+          echo "**API:** https://nfse-api-hom.onrender.com" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Create Release Tag
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          TAG="release-$(date +'%Y%m%d-%H%M%S')"
+          git tag -a "$TAG" -m "Release to homologation"
+          git push origin "$TAG" || echo "Tag already exists"
