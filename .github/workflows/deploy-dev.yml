@@ -34,19 +34,13 @@ jobs:
           sed -i "s|baseURL: 'https://nfse-api-dev.onrender.com'|baseURL: 'https://nfse-api-dev.onrender.com'|g" js/config.js
           echo "✅ API URL configurada para DEV"
 
-      - name: Create build directory
-        run: |
-          mkdir -p build/dev
-          cp -r * build/dev/ 2>/dev/null || true
-          rm -rf build/dev/.git build/dev/.github build/dev/build
-
       - name: Deploy to GitHub Pages (dev)
         uses: peaceiris/actions-gh-pages@v3
         if: github.event_name == 'push'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build
-          destination_dir: .
+          publish_dir: .
+          destination_dir: dev
           keep_files: true
           commit_message: "🚀 Deploy development: ${{ github.event.head_commit.message }}"
 
