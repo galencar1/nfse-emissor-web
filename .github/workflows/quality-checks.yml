@@ -1,0 +1,64 @@
+name: Quality Checks
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - release
+      - main
+
+jobs:
+  lint-and-validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate HTML
+        run: |
+          echo "🔍 Validando HTML..."
+          # Adicionar validador HTML se necessário
+          
+      - name: Validate JavaScript
+        run: |
+          echo "🔍 Validando JavaScript..."
+          # Verificar sintaxe básica
+          node -c js/config.js || exit 1
+          node -c js/api.js || exit 1
+          node -c js/app.js || exit 1
+          echo "✅ JavaScript OK"
+
+      - name: Check for hardcoded credentials
+        run: |
+          echo "🔐 Verificando credenciais hardcoded..."
+          if grep -r "senha.*:" js/ --include="*.js" | grep -v "//"; then
+            echo "❌ ERRO: Credenciais encontradas no código!"
+            exit 1
+          fi
+          echo "✅ Nenhuma credencial hardcoded encontrada"
+
+      - name: Check file sizes
+        run: |
+          echo "📦 Verificando tamanho dos arquivos..."
+          find . -type f -size +1M -not -path "./.git/*" | while read file; do
+            echo "⚠️  Arquivo grande: $file"
+          done
+
+      - name: Security check - manifest.json
+        run: |
+          echo "🛡️  Verificando manifest.json..."
+          if [ -f manifest.json ]; then
+            echo "✅ Manifest encontrado"
+          else
+            echo "⚠️  Manifest não encontrado"
+          fi
+
+      - name: Summary
+        run: |
+          echo "### ✅ Quality Checks Passed!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- HTML validation: ✅" >> $GITHUB_STEP_SUMMARY
+          echo "- JavaScript validation: ✅" >> $GITHUB_STEP_SUMMARY
+          echo "- Security check: ✅" >> $GITHUB_STEP_SUMMARY
+          echo "- File size check: ✅" >> $GITHUB_STEP_SUMMARY

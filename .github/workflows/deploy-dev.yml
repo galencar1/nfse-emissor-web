@@ -1,0 +1,56 @@
+name: Deploy to Development
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    environment:
+      name: development
+      url: https://galencar1.github.io/nfse-emissor-web/dev
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Configure API URL for Development
+        run: |
+          sed -i "s|baseURL: 'https://nfse-api-dev.onrender.com'|baseURL: 'https://nfse-api-dev.onrender.com'|g" js/config.js
+          echo "✅ API URL configurada para DEV"
+
+      - name: Create build directory
+        run: |
+          mkdir -p build/dev
+          cp -r * build/dev/ 2>/dev/null || true
+          rm -rf build/dev/.git build/dev/.github build/dev/build
+
+      - name: Deploy to GitHub Pages (dev)
+        uses: peaceiris/actions-gh-pages@v3
+        if: github.event_name == 'push'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build
+          destination_dir: .
+          keep_files: true
+          commit_message: "🚀 Deploy development: ${{ github.event.head_commit.message }}"
+
+      - name: Deployment Summary
+        if: github.event_name == 'push'
+        run: |
+          echo "### 🚀 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** Development" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** https://galencar1.github.io/nfse-emissor-web/dev" >> $GITHUB_STEP_SUMMARY
+          echo "**API:** https://nfse-api-dev.onrender.com" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
