@@ -15,6 +15,7 @@ npm-debug.log*
 
 # Dependências (caso adicione npm futuramente)
 node_modules/
+package-lock.json
 
 # Build (caso adicione build tools)
 dist/
