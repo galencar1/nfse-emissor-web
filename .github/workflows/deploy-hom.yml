@@ -34,19 +34,13 @@ jobs:
           sed -i "s|baseURL: 'https://nfse-api-dev.onrender.com'|baseURL: 'https://nfse-api-hom.onrender.com'|g" js/config.js
           echo "✅ API URL configurada para HOMOLOGAÇÃO"
 
-      - name: Create build directory
-        run: |
-          mkdir -p build/hom
-          cp -r * build/hom/ 2>/dev/null || true
-          rm -rf build/hom/.git build/hom/.github build/hom/build
-
       - name: Deploy to GitHub Pages (hom)
         uses: peaceiris/actions-gh-pages@v3
         if: github.event_name == 'push'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build
-          destination_dir: .
+          publish_dir: .
+          destination_dir: hom
           keep_files: true
           commit_message: "🚀 Deploy homologation: ${{ github.event.head_commit.message }}"
 
