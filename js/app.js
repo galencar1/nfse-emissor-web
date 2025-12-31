@@ -329,9 +329,37 @@ async function carregarNotas() {
     try {
         const resultado = await api.listarNotas(paginaAtual);
 
+        // Debug: Log da estrutura de resposta da API
+        console.log('Resposta da API:', resultado);
+        console.log('Total de notas retornadas:', resultado.notas?.length);
+        console.log('Página atual:', paginaAtual);
+
         if (resultado.sucesso && resultado.notas && resultado.notas.length > 0) {
             renderNotas(resultado.notas);
-            totalPaginas = Math.ceil(resultado.total / 15);
+            
+            // Calcular total de páginas
+            // Se a API retornar paginacao.total_paginas, usar esse valor
+            // Caso contrário, calcular baseado no total de registros
+            if (resultado.paginacao && resultado.paginacao.total_paginas) {
+                totalPaginas = resultado.paginacao.total_paginas;
+                console.log('Total de páginas (da API):', totalPaginas);
+            } else if (resultado.total && resultado.total > resultado.notas.length) {
+                // Só usar resultado.total se for maior que o número de notas retornadas
+                // (indicando que é realmente o total de registros no banco)
+                totalPaginas = Math.ceil(resultado.total / 15);
+                console.log('Total de páginas (calculado):', totalPaginas, '- Total registros:', resultado.total);
+            } else {
+                // Fallback: assumir que há mais páginas se retornou o limite completo (15 notas)
+                // Isso cobre o caso onde o backend retorna total = quantidade de notas na página
+                if (resultado.notas.length >= 15) {
+                    totalPaginas = paginaAtual + 1; // Pelo menos mais uma página
+                    console.log('Assumindo mais páginas - retornou 15 notas (limite completo)');
+                } else {
+                    totalPaginas = paginaAtual; // Última página
+                    console.log('Última página - retornou', resultado.notas.length, 'notas (menos que o limite)');
+                }
+            }
+            
             updatePagination();
         } else {
             // Tentar cache se não houver notas
