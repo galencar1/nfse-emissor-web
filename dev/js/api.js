@@ -37,7 +37,9 @@ class NFSeAPI {
     getEmissorAtual() {
         const emissorId = localStorage.getItem(STORAGE_KEYS.emissorAtual);
         if (!emissorId) return null;
-        return EMISSORES.find(e => e.id === emissorId);
+        const emissor = EMISSORES.find(e => e.id === emissorId);
+        console.log('Emissor atual:', emissor);
+        return emissor;
     }
 
     // Headers comuns
@@ -45,6 +47,8 @@ class NFSeAPI {
         if (!credenciais) {
             throw new Error('Credenciais não configuradas');
         }
+        
+        console.log('Headers sendo enviados - CNPJ:', emissor.cnpj, '- Emissor:', emissor.nome);
         
         return {
             'Content-Type': 'application/json',

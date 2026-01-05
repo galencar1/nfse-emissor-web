@@ -8,6 +8,7 @@ let totalPaginas = 1;
 document.addEventListener('DOMContentLoaded', () => {
     initEmissores();
     initTomadorSelect();
+    initCodigoTributacao();
     loadEmissorSalvo();
     verificarCredenciais(); // Verificar se precisa configurar credenciais
 });
@@ -16,16 +17,29 @@ document.addEventListener('DOMContentLoaded', () => {
 function initEmissores() {
     const select = document.getElementById('emissor-select');
     
+    console.log('Inicializando emissores:', EMISSORES);
+    console.log('Select element:', select);
+    
     EMISSORES.forEach(emissor => {
         const option = document.createElement('option');
         option.value = emissor.id;
         option.textContent = emissor.nome;
         select.appendChild(option);
+        console.log('Emissor adicionado:', emissor.nome);
     });
 
     select.addEventListener('change', (e) => {
         if (e.target.value) {
             localStorage.setItem(STORAGE_KEYS.emissorAtual, e.target.value);
+            const emissor = EMISSORES.find(em => em.id === e.target.value);
+            console.log('Emissor alterado para:', emissor);
+            
+            // Mostrar toast informando a mudança
+            showToast(
+                'Emissor alterado',
+                `Agora usando: ${emissor.nome} (CNPJ: ${emissor.cnpj})`,
+                'info'
+            );
         }
     });
 }
@@ -46,10 +60,73 @@ function initTomadorSelect() {
         const cnpjOutroDiv = document.getElementById('cnpj-outro-div');
         if (e.target.value === 'outro') {
             cnpjOutroDiv.classList.remove('hidden');
+            // Limpar emails quando escolher "outro"
+            limparEmails();
         } else {
             cnpjOutroDiv.classList.add('hidden');
+            // Preencher emails automaticamente baseado no tomador
+            preencherEmailsPorTomador(e.target.value);
         }
     });
+}
+
+// Inicializar seletor de código de tributação
+function initCodigoTributacao() {
+    const select = document.getElementById('codigo-tributacao');
+    
+    CODIGOS_TRIBUTACAO.forEach(codigo => {
+        const option = document.createElement('option');
+        option.value = codigo.codigo;
+        option.textContent = `${codigo.codigo} - ${codigo.descricao}`;
+        select.appendChild(option);
+    });
+}
+
+// Preencher emails automaticamente baseado no tomador
+function preencherEmailsPorTomador(cnpjTomador) {
+    const emailsContainer = document.getElementById('emails-container');
+    
+    // Limpar emails existentes
+    emailsContainer.innerHTML = '';
+    
+    // Buscar emails para o tomador
+    const emails = EMAILS_POR_TOMADOR[cnpjTomador] || [];
+    
+    if (emails.length > 0) {
+        // Adicionar campos com os emails pré-preenchidos
+        emails.forEach(email => {
+            const input = document.createElement('input');
+            input.type = 'email';
+            input.className = 'email-input w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary';
+            input.value = email;
+            emailsContainer.appendChild(input);
+        });
+        
+        showToast(
+            'Emails preenchidos',
+            `${emails.length} email(s) adicionado(s) automaticamente para este tomador`,
+            'info'
+        );
+    } else {
+        // Se não houver emails cadastrados, adicionar campo vazio
+        const input = document.createElement('input');
+        input.type = 'email';
+        input.className = 'email-input w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary';
+        input.placeholder = 'email@exemplo.com';
+        emailsContainer.appendChild(input);
+    }
+}
+
+// Limpar emails
+function limparEmails() {
+    const emailsContainer = document.getElementById('emails-container');
+    emailsContainer.innerHTML = '';
+    
+    const input = document.createElement('input');
+    input.type = 'email';
+    input.className = 'email-input w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary';
+    input.placeholder = 'email@exemplo.com';
+    emailsContainer.appendChild(input);
 }
 
 // Navegação entre telas
@@ -191,6 +268,12 @@ async function emitirNota() {
         return;
     }
 
+    const codigoTributacao = document.getElementById('codigo-tributacao');
+    if (!codigoTributacao.value) {
+        showToast('Código de tributação obrigatório', 'Selecione o código de tributação do serviço', 'error');
+        return;
+    }
+
     const emails = collectEmails('email-input');
     if (emails.length === 0) {
         // Se não houver email digitado, usar o email das credenciais
@@ -210,6 +293,7 @@ async function emitirNota() {
         descricao_servico: descricao.value.trim(),
         valor_servico: parseFloat(valor.value),
         emitir_automaticamente: true,
+        codigo_tributacao: codigoTributacao.value,
         emails_notificacao: emails
     };
 
@@ -229,6 +313,7 @@ async function emitirNota() {
             tomadorSelect.value = '';
             descricao.value = '';
             valor.value = '';
+            codigoTributacao.value = '';
             document.getElementById('cnpj-outro-div').classList.add('hidden');
             document.querySelectorAll('.email-input').forEach((input, index) => {
                 if (index === 0) input.value = '';
