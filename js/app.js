@@ -95,11 +95,7 @@ function preencherEmailsPorTomador(cnpjTomador) {
     if (emails.length > 0) {
         // Adicionar campos com os emails pré-preenchidos
         emails.forEach(email => {
-            const input = document.createElement('input');
-            input.type = 'email';
-            input.className = 'email-input w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary';
-            input.value = email;
-            emailsContainer.appendChild(input);
+            criarCampoEmail(emailsContainer, email);
         });
         
         showToast(
@@ -109,24 +105,44 @@ function preencherEmailsPorTomador(cnpjTomador) {
         );
     } else {
         // Se não houver emails cadastrados, adicionar campo vazio
-        const input = document.createElement('input');
-        input.type = 'email';
-        input.className = 'email-input w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary';
-        input.placeholder = 'email@exemplo.com';
-        emailsContainer.appendChild(input);
+        criarCampoEmail(emailsContainer, '');
     }
+}
+
+// Criar campo de email com botão de remover
+function criarCampoEmail(container, valorInicial = '') {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'flex gap-2 items-center';
+    
+    const input = document.createElement('input');
+    input.type = 'email';
+    input.className = 'email-input flex-1 p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary';
+    input.placeholder = 'email@exemplo.com';
+    input.value = valorInicial;
+    
+    const btnRemover = document.createElement('button');
+    btnRemover.type = 'button';
+    btnRemover.className = 'bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-4 rounded-lg transition duration-200 text-xl';
+    btnRemover.innerHTML = '×';
+    btnRemover.title = 'Remover email';
+    btnRemover.onclick = () => {
+        wrapper.remove();
+        // Se não houver mais campos, adicionar um vazio
+        if (container.children.length === 0) {
+            criarCampoEmail(container, '');
+        }
+    };
+    
+    wrapper.appendChild(input);
+    wrapper.appendChild(btnRemover);
+    container.appendChild(wrapper);
 }
 
 // Limpar emails
 function limparEmails() {
     const emailsContainer = document.getElementById('emails-container');
     emailsContainer.innerHTML = '';
-    
-    const input = document.createElement('input');
-    input.type = 'email';
-    input.className = 'email-input w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary';
-    input.placeholder = 'email@exemplo.com';
-    emailsContainer.appendChild(input);
+    criarCampoEmail(emailsContainer, '');
 }
 
 // Navegação entre telas
@@ -144,6 +160,14 @@ function showScreen(screenName) {
     if (screenName === 'list') {
         paginaAtual = 1;
         carregarNotas();
+    }
+    
+    // Inicializar campo de email ao abrir tela de emissão
+    if (screenName === 'emit') {
+        const emailsContainer = document.getElementById('emails-container');
+        if (emailsContainer.children.length === 0) {
+            criarCampoEmail(emailsContainer, '');
+        }
     }
 }
 
@@ -190,11 +214,7 @@ function showToast(message, details = '', type = 'success') {
 // Adicionar campo de email (emissão)
 function addEmailInput() {
     const container = document.getElementById('emails-container');
-    const input = document.createElement('input');
-    input.type = 'email';
-    input.className = 'email-input w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary';
-    input.placeholder = 'email@exemplo.com';
-    container.appendChild(input);
+    criarCampoEmail(container, '');
 }
 
 // Adicionar campo de email (cancelamento)
@@ -315,10 +335,11 @@ async function emitirNota() {
             valor.value = '';
             codigoTributacao.value = '';
             document.getElementById('cnpj-outro-div').classList.add('hidden');
-            document.querySelectorAll('.email-input').forEach((input, index) => {
-                if (index === 0) input.value = '';
-                else input.remove();
-            });
+            
+            // Limpar emails e deixar um campo vazio
+            const emailsContainer = document.getElementById('emails-container');
+            emailsContainer.innerHTML = '';
+            criarCampoEmail(emailsContainer, '');
 
             // Voltar para home após 2 segundos
             setTimeout(() => showScreen('home'), 2000);
