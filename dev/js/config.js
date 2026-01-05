@@ -69,15 +69,15 @@ const EMAILS_POR_TOMADOR = {
 // Códigos de tributação disponíveis
 const CODIGOS_TRIBUTACAO = [
     {
-        codigo: '140101',
+        codigo: '14.01.01',
         descricao: 'Manutenção de Máquinas'
     },
     {
-        codigo: '070202',
+        codigo: '07.02.02',
         descricao: 'Obras Civil - Hidráulica, Civil, Pintura'
     },
     {
-        codigo: '141302',
+        codigo: '14.13.02',
         descricao: 'Serralheria'
     }
 ];

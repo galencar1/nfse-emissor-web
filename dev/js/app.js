@@ -248,6 +248,13 @@ function validarEmissor() {
     return true;
 }
 
+// Formatar CNPJ (00.000.000/0000-00)
+function formatarCNPJ(cnpj) {
+    const cleaned = cnpj.replace(/\D/g, '');
+    if (cleaned.length !== 14) return cnpj;
+    return cleaned.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+}
+
 // EMITIR NOTA
 async function emitirNota() {
     if (!validarEmissor()) return;
@@ -308,7 +315,7 @@ async function emitirNota() {
 
     // Montar dados
     const dados = {
-        cnpj_tomador: cnpjTomador,
+        cnpj_tomador: formatarCNPJ(cnpjTomador),
         municipio_prestacao: municipio.value.trim(),
         descricao_servico: descricao.value.trim(),
         valor_servico: parseFloat(valor.value),
