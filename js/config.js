@@ -20,12 +20,13 @@ const EMISSORES = [
     {
         id: 'om',
         nome: 'OM Prestadora',
-        cnpj: '59714129000104'
+        cnpj: '48952794000110'
     }
 ];
 
-// Nota: Senhas e emails são configurados pelo usuário na primeira vez
-// e salvos de forma criptografada no LocalStorage
+// Nota: Senhas são configuradas pelo usuário na primeira vez
+// e salvas de forma criptografada no LocalStorage.
+// Emails de notificação são preenchidos automaticamente baseado no tomador.
 
 // Tomadores pré-cadastrados
 const TOMADORES_PREDEFINIDOS = {
@@ -42,6 +43,44 @@ const TOMADORES_PREDEFINIDOS = {
         cnpj: '75315333025870'
     }
 };
+
+// Mapeamento de emails de notificação por CNPJ do tomador
+const EMAILS_POR_TOMADOR = {
+    '75315333017184': [
+        'gfalencar02@gmail.com',
+        'omarmacielalencar@gmail.com',
+        'geovanna_rafaela_jenani@atacadao.com.br'
+    ],
+    '75315333003981': [
+        'gabrielfalencar@gmail.com',
+        'omarmacielalencar@gmail.com',
+        'silvio_eduardo_pereira_da_silva@atacadao.com.br',
+        'Rodrigo_fridman_martins@atacadao.com.br'
+    ],
+    '48952794000110': [
+        'gabrielfalencar@gmail.com',
+        'gfalencar01@gmail.com',
+        'gfalencar02@gmail.com',
+        'limat1703@gmail.com',
+        'lima.b.thais@gmail.com'
+    ]
+};
+
+// Códigos de tributação disponíveis
+const CODIGOS_TRIBUTACAO = [
+    {
+        codigo: '140101',
+        descricao: 'Manutenção de Máquinas'
+    },
+    {
+        codigo: '070202',
+        descricao: 'Obras Civil - Hidráulica, Civil, Pintura'
+    },
+    {
+        codigo: '141302',
+        descricao: 'Serralheria'
+    }
+];
 
 // Motivos de cancelamento
 const MOTIVOS_CANCELAMENTO = {
