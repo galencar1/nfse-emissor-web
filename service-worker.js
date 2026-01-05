@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nfse-cache-v2';
+const CACHE_NAME = 'nfse-cache-v2-' + Date.now();
 const urlsToCache = [
   '/',
   '/index.html',
