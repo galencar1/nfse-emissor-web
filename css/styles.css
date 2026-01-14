@@ -7,6 +7,21 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* Indicador de status do emissor */
+#emissor-select {
+    transition: border-color 0.3s ease;
+}
+
+#emissor-select.border-green-500 {
+    border-color: #10b981 !important;
+    border-width: 3px !important;
+}
+
+#emissor-select.border-red-500 {
+    border-color: #ef4444 !important;
+    border-width: 3px !important;
+}
+
 /* Botões de ação principais (Home) */
 .action-btn {
     @apply w-full text-white font-bold py-6 px-6 rounded-lg shadow-lg transition duration-200 transform hover:scale-105 flex items-center justify-center gap-4;
