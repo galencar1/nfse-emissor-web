@@ -11,6 +11,21 @@ document.addEventListener('DOMContentLoaded', () => {
     initCodigoTributacao();
     loadEmissorSalvo();
     verificarCredenciais(); // Verificar se precisa configurar credenciais
+    
+    // Inicializar filtros de data
+    populateYearSelect();
+    
+    // Adicionar event listeners para formatação automática de data
+    const dataInicio = document.getElementById('filtro-data-inicio');
+    const dataFim = document.getElementById('filtro-data-fim');
+    
+    if (dataInicio) {
+        dataInicio.addEventListener('input', (e) => formatarData(e.target));
+    }
+    
+    if (dataFim) {
+        dataFim.addEventListener('input', (e) => formatarData(e.target));
+    }
 });
 
 // Inicializar seletor de emissores
@@ -30,25 +45,67 @@ function initEmissores() {
 
     select.addEventListener('change', (e) => {
         if (e.target.value) {
-            localStorage.setItem(STORAGE_KEYS.emissorAtual, e.target.value);
-            const emissor = EMISSORES.find(em => em.id === e.target.value);
-            console.log('Emissor alterado para:', emissor);
-            
-            // Mostrar toast informando a mudança
-            showToast(
-                'Emissor alterado',
-                `Agora usando: ${emissor.nome} (CNPJ: ${emissor.cnpj})`,
-                'info'
-            );
+            trocarEmissor(e.target.value);
         }
     });
+}
+
+// Trocar emissor e verificar credenciais
+function trocarEmissor(emissorId) {
+    const emissor = EMISSORES.find(em => em.id === emissorId);
+    if (!emissor) {
+        showToast('Erro', 'Emissor não encontrado', 'error');
+        return;
+    }
+    
+    // Salvar emissor atual
+    api.setEmissorAtual(emissorId);
+    
+    // Verificar se tem credenciais para este emissor
+    const temCredenciais = api.temCredenciais(emissorId);
+    
+    if (!temCredenciais) {
+        // Mostrar modal de configuração para este emissor
+        mostrarModalConfigEmissor(emissor);
+    } else {
+        // Atualizar indicador visual
+        atualizarIndicadorEmissor(emissor);
+        
+        showToast(
+            'Emissor alterado',
+            `Agora usando: ${emissor.nome} (CNPJ: ${emissor.cnpj})`,
+            'success'
+        );
+    }
+}
+
+// Atualizar indicador visual do emissor
+function atualizarIndicadorEmissor(emissor) {
+    const select = document.getElementById('emissor-select');
+    const temCredenciais = api.temCredenciais(emissor.id);
+    
+    // Adicionar classe visual para indicar estado
+    if (temCredenciais) {
+        select.classList.remove('border-red-500');
+        select.classList.add('border-green-500');
+    } else {
+        select.classList.remove('border-green-500');
+        select.classList.add('border-red-500');
+    }
 }
 
 // Carregar emissor salvo
 function loadEmissorSalvo() {
     const emissorSalvo = localStorage.getItem(STORAGE_KEYS.emissorAtual);
     if (emissorSalvo) {
-        document.getElementById('emissor-select').value = emissorSalvo;
+        const select = document.getElementById('emissor-select');
+        select.value = emissorSalvo;
+        
+        // Atualizar indicador visual
+        const emissor = EMISSORES.find(e => e.id === emissorSalvo);
+        if (emissor) {
+            atualizarIndicadorEmissor(emissor);
+        }
     }
 }
 
@@ -440,36 +497,27 @@ async function carregarNotas() {
     container.innerHTML = '<p class="text-center text-gray-500">Carregando...</p>';
 
     try {
-        const resultado = await api.listarNotas(paginaAtual);
+        const resultado = await api.listarNotas(paginaAtual, 15, filtrosAtivos);
 
         // Debug: Log da estrutura de resposta da API
         console.log('Resposta da API:', resultado);
         console.log('Total de notas retornadas:', resultado.notas?.length);
         console.log('Página atual:', paginaAtual);
+        console.log('Filtros aplicados:', filtrosAtivos);
 
         if (resultado.sucesso && resultado.notas && resultado.notas.length > 0) {
             renderNotas(resultado.notas);
             
             // Calcular total de páginas
-            // Se a API retornar paginacao.total_paginas, usar esse valor
-            // Caso contrário, calcular baseado no total de registros
-            if (resultado.paginacao && resultado.paginacao.total_paginas) {
-                totalPaginas = resultado.paginacao.total_paginas;
-                console.log('Total de páginas (da API):', totalPaginas);
+            if (resultado.total_paginas) {
+                totalPaginas = resultado.total_paginas;
             } else if (resultado.total && resultado.total > resultado.notas.length) {
-                // Só usar resultado.total se for maior que o número de notas retornadas
-                // (indicando que é realmente o total de registros no banco)
                 totalPaginas = Math.ceil(resultado.total / 15);
-                console.log('Total de páginas (calculado):', totalPaginas, '- Total registros:', resultado.total);
             } else {
-                // Fallback: assumir que há mais páginas se retornou o limite completo (15 notas)
-                // Isso cobre o caso onde o backend retorna total = quantidade de notas na página
                 if (resultado.notas.length >= 15) {
-                    totalPaginas = paginaAtual + 1; // Pelo menos mais uma página
-                    console.log('Assumindo mais páginas - retornou 15 notas (limite completo)');
+                    totalPaginas = paginaAtual + 1;
                 } else {
-                    totalPaginas = paginaAtual; // Última página
-                    console.log('Última página - retornou', resultado.notas.length, 'notas (menos que o limite)');
+                    totalPaginas = paginaAtual;
                 }
             }
             
@@ -554,25 +602,214 @@ function nextPage() {
     }
 }
 
-// CONFIGURAÇÃO DE CREDENCIAIS
+// FILTROS DE BUSCA DE NOTAS
 
-// Verificar se usuário já configurou credenciais
-function verificarCredenciais() {
-    const credenciais = api.getCredenciais();
-    if (!credenciais) {
-        mostrarModalConfig();
+// Estado dos filtros
+let filtrosAtivos = {};
+
+function populateYearSelect() {
+    const select = document.getElementById('filtro-ano');
+    const anoAtual = new Date().getFullYear();
+    
+    // Adicionar opção vazia
+    select.innerHTML = '<option value="">Todos os períodos</option>';
+    
+    // Adicionar últimos 5 anos
+    for (let i = 0; i < 5; i++) {
+        const ano = anoAtual - i;
+        const option = document.createElement('option');
+        option.value = ano;
+        option.textContent = ano;
+        select.appendChild(option);
     }
 }
 
-// Mostrar modal de configuração
-function mostrarModalConfig() {
-    document.getElementById('config-modal').classList.remove('hidden');
+function formatarData(input) {
+    let value = input.value.replace(/\D/g, '');
+    if (value.length >= 2) {
+        value = value.substring(0, 2) + '/' + value.substring(2);
+    }
+    if (value.length >= 5) {
+        value = value.substring(0, 5) + '/' + value.substring(5, 9);
+    }
+    input.value = value;
 }
 
-// Salvar credenciais
+function validarData(dataStr) {
+    if (!dataStr) return true; // Vazio é válido
+    
+    const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+    const match = dataStr.match(regex);
+    
+    if (!match) return false;
+    
+    const dia = parseInt(match[1]);
+    const mes = parseInt(match[2]);
+    const ano = parseInt(match[3]);
+    
+    if (mes < 1 || mes > 12) return false;
+    if (dia < 1 || dia > 31) return false;
+    if (ano < 2000 || ano > 2100) return false;
+    
+    return true;
+}
+
+function aplicarFiltros() {
+    const ano = document.getElementById('filtro-ano').value;
+    const dataInicio = document.getElementById('filtro-data-inicio').value;
+    const dataFim = document.getElementById('filtro-data-fim').value;
+    
+    // Validar datas
+    if (dataInicio && !validarData(dataInicio)) {
+        showToast('Data inválida', 'Data de início em formato inválido (use DD/MM/AAAA)', 'error');
+        return;
+    }
+    
+    if (dataFim && !validarData(dataFim)) {
+        showToast('Data inválida', 'Data de fim em formato inválido (use DD/MM/AAAA)', 'error');
+        return;
+    }
+    
+    // Verificar período de 30 dias se ambas as datas forem informadas
+    if (dataInicio && dataFim) {
+        const [dia1, mes1, ano1] = dataInicio.split('/').map(Number);
+        const [dia2, mes2, ano2] = dataFim.split('/').map(Number);
+        const d1 = new Date(ano1, mes1 - 1, dia1);
+        const d2 = new Date(ano2, mes2 - 1, dia2);
+        const diffDias = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24));
+        
+        if (diffDias > 30) {
+            showToast('Período inválido', 'O período entre as datas não pode ser maior que 30 dias', 'error');
+            return;
+        }
+        
+        if (diffDias < 0) {
+            showToast('Período inválido', 'Data de início deve ser anterior à data de fim', 'error');
+            return;
+        }
+    }
+    
+    // Construir filtros
+    filtrosAtivos = {};
+    
+    if (ano) {
+        filtrosAtivos.ano = parseInt(ano);
+        // Limpar campos de data se ano foi selecionado
+        document.getElementById('filtro-data-inicio').value = '';
+        document.getElementById('filtro-data-fim').value = '';
+    } else if (dataInicio && dataFim) {
+        filtrosAtivos.data_inicio = dataInicio;
+        filtrosAtivos.data_fim = dataFim;
+    } else if (dataInicio || dataFim) {
+        showToast('Filtro incompleto', 'Informe tanto a data de início quanto a de fim, ou selecione um ano', 'warning');
+        return;
+    }
+    
+    // Atualizar status da busca
+    atualizarStatusBusca();
+    
+    // Resetar paginação e buscar
+    paginaAtual = 1;
+    carregarNotas();
+}
+
+function limparFiltros() {
+    document.getElementById('filtro-ano').value = '';
+    document.getElementById('filtro-data-inicio').value = '';
+    document.getElementById('filtro-data-fim').value = '';
+    filtrosAtivos = {};
+    
+    // Esconder status
+    document.getElementById('status-busca').classList.add('hidden');
+    
+    // Resetar paginação e buscar
+    paginaAtual = 1;
+    carregarNotas();
+}
+
+function atualizarStatusBusca() {
+    const statusDiv = document.getElementById('status-busca');
+    const statusTexto = document.getElementById('status-busca-texto');
+    
+    if (Object.keys(filtrosAtivos).length === 0) {
+        statusDiv.classList.add('hidden');
+        return;
+    }
+    
+    let texto = '';
+    if (filtrosAtivos.ano) {
+        texto = `Ano: ${filtrosAtivos.ano} (todas as notas do ano)`;
+    } else if (filtrosAtivos.data_inicio && filtrosAtivos.data_fim) {
+        texto = `Período: ${filtrosAtivos.data_inicio} até ${filtrosAtivos.data_fim}`;
+    }
+    
+    statusTexto.textContent = texto;
+    statusDiv.classList.remove('hidden');
+}
+
+// CONFIGURAÇÃO DE CREDENCIAIS
+
+// Verificar se usuário já configurou credenciais do emissor atual
+function verificarCredenciais() {
+    const emissorAtual = api.getEmissorAtual();
+    
+    // Se não tem emissor selecionado, não fazer nada
+    // (será configurado quando o usuário selecionar)
+    if (!emissorAtual) {
+        return;
+    }
+    
+    // Verificar se o emissor atual tem credenciais
+    const temCredenciais = api.temCredenciais(emissorAtual.id);
+    if (!temCredenciais) {
+        mostrarModalConfigEmissor(emissorAtual);
+    }
+}
+
+// Mostrar modal de configuração para um emissor específico
+function mostrarModalConfigEmissor(emissor) {
+    const modal = document.getElementById('config-modal');
+    const titulo = modal.querySelector('h2');
+    
+    // Atualizar título com nome do emissor
+    titulo.textContent = `🔐 Configurar ${emissor.nome}`;
+    
+    // Limpar campos
+    document.getElementById('config-senha').value = '';
+    
+    // Tentar preencher com valores existentes (se houver)
+    const credenciaisExistentes = api.getCredenciais(emissor.id);
+    if (credenciaisExistentes) {
+        document.getElementById('config-senha').value = credenciaisExistentes.senha || '';
+    }
+    
+    // Guardar emissor no modal para usar no save
+    modal.dataset.emissorId = emissor.id;
+    
+    modal.classList.remove('hidden');
+}
+
+// Mostrar configuração do emissor atual (via botão)
+function mostrarConfigEmissorAtual() {
+    const emissor = api.getEmissorAtual();
+    if (!emissor) {
+        showToast('Selecione um emissor', 'Escolha o emissor primeiro', 'warning');
+        return;
+    }
+    mostrarModalConfigEmissor(emissor);
+}
+
+// Salvar credenciais do emissor
 function salvarCredenciais() {
+    const modal = document.getElementById('config-modal');
+    const emissorId = modal.dataset.emissorId;
+    
+    if (!emissorId) {
+        showToast('Erro', 'Emissor não identificado', 'error');
+        return;
+    }
+    
     const senha = document.getElementById('config-senha').value.trim();
-    const email = document.getElementById('config-email').value.trim();
 
     // Validações
     if (!senha) {
@@ -580,27 +817,29 @@ function salvarCredenciais() {
         return;
     }
 
-    if (!email) {
-        showToast('Email obrigatório', 'Digite um email para notificações', 'error');
-        return;
+    try {
+        // Salvar credenciais para este emissor
+        api.salvarCredenciais(emissorId, senha);
+
+        // Fechar modal
+        modal.classList.add('hidden');
+        delete modal.dataset.emissorId;
+
+        // Limpar campos
+        document.getElementById('config-senha').value = '';
+
+        // Atualizar indicador visual
+        const emissor = EMISSORES.find(e => e.id === emissorId);
+        if (emissor) {
+            atualizarIndicadorEmissor(emissor);
+        }
+
+        showToast(
+            '✅ Credenciais salvas!', 
+            `${emissor.nome} configurado com sucesso`, 
+            'success'
+        );
+    } catch (error) {
+        showToast('Erro ao salvar', error.message, 'error');
     }
-
-    // Validar email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        showToast('Email inválido', 'Digite um email válido', 'error');
-        return;
-    }
-
-    // Salvar credenciais
-    api.salvarCredenciais(senha, email);
-
-    // Fechar modal
-    document.getElementById('config-modal').classList.add('hidden');
-
-    // Limpar campos
-    document.getElementById('config-senha').value = '';
-    document.getElementById('config-email').value = '';
-
-    showToast('✅ Credenciais salvas!', 'Você já pode usar o sistema', 'success');
 }
