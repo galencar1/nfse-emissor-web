@@ -2,7 +2,7 @@
 
 // URL da API
 const API_CONFIG = {
-    baseURL: 'https://nfse-api-hom.onrender.com',
+    baseURL: 'https://nfse-api.onrender.com',
     endpoints: {
         emit: '/api/v1/nfse/emit',
         cancel: '/api/v1/nfse/cancel',
