@@ -6,6 +6,11 @@ on:
       - main
   workflow_dispatch:  # Permitir deploy manual
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
   deploy-prod:
     runs-on: ubuntu-latest

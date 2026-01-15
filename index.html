@@ -47,29 +47,29 @@
     <div id="config-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-lg p-6 max-w-md w-full">
             <h2 class="text-2xl font-bold text-gray-800 mb-4">🔐 Configuração Inicial</h2>
-            <p class="text-gray-600 mb-6">Para começar a usar o sistema, configure suas credenciais de acesso à API NFS-e.</p>
+            <p class="text-gray-600 mb-6">Configure as credenciais de acesso à API NFS-e para este emissor.</p>
             
             <div class="space-y-4">
                 <div>
                     <label class="block text-lg font-semibold text-gray-700 mb-2">🔑 Senha da API</label>
                     <input type="password" id="config-senha" placeholder="Digite sua senha" 
                            class="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
-                    <p class="text-sm text-gray-500 mt-1">Sua senha será armazenada de forma criptografada apenas no seu navegador</p>
+                    <p class="text-sm text-gray-500 mt-1">Senha de acesso ao sistema NFS-e</p>
                 </div>
 
-                <div>
-                    <label class="block text-lg font-semibold text-gray-700 mb-2">📧 Email para notificações</label>
-                    <input type="email" id="config-email" placeholder="seu@email.com" 
-                           class="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
-                    <p class="text-sm text-gray-500 mt-1">Email padrão para receber notificações das notas</p>
+                <div class="flex gap-2">
+                    <button onclick="salvarCredenciais()" 
+                            class="flex-1 bg-primary hover:bg-primary-dark text-white font-bold py-4 px-6 rounded-lg text-xl transition duration-200">
+                        ✅ Salvar
+                    </button>
+                    <button onclick="document.getElementById('config-modal').classList.add('hidden')" 
+                            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-4 px-6 rounded-lg text-xl transition duration-200">
+                        ✖️
+                    </button>
                 </div>
-
-                <button onclick="salvarCredenciais()" class="w-full bg-primary hover:bg-primary-dark text-white font-bold py-4 px-6 rounded-lg text-xl transition duration-200">
-                    ✅ Salvar e Começar
-                </button>
 
                 <p class="text-xs text-gray-500 text-center mt-4">
-                    🔒 Suas credenciais ficam salvas apenas no seu navegador. Nunca as compartilhe com terceiros.
+                    🔒 Credenciais ficam salvas apenas no seu navegador por emissor. Cada empresa tem suas próprias credenciais.
                 </p>
             </div>
         </div>
@@ -91,12 +91,24 @@
 
         <!-- Emissor Selection -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <label class="block text-lg font-semibold text-gray-700 mb-3">
-                👤 Emissor
-            </label>
-            <select id="emissor-select" class="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+            <div class="flex justify-between items-center mb-3">
+                <label class="block text-lg font-semibold text-gray-700">
+                    👤 Emissor
+                </label>
+                <button onclick="mostrarConfigEmissorAtual()" 
+                        class="text-sm bg-blue-500 hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded transition duration-200"
+                        title="Configurar credenciais do emissor selecionado">
+                    ⚙️ Configurar
+                </button>
+            </div>
+            <select id="emissor-select" 
+                    class="w-full p-4 text-lg border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition duration-200">
                 <option value="">Selecione o emissor...</option>
             </select>
+            <p class="text-xs text-gray-500 mt-2">
+                <span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-1"></span>
+                Borda verde = Credenciais configuradas
+            </p>
         </div>
 
         <!-- Main Screen (Home) -->
@@ -166,8 +178,13 @@
                            class="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
                 </div>
 
-                <div>
-                    <label class="block text-lg font-semibold text-gray-700 mb-2">📧 Emails para Notificação</label>
+                <div>                    <label class="block text-lg font-semibold text-gray-700 mb-2">📋 Código de Tributação</label>
+                    <select id="codigo-tributacao" class="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
+                        <option value="">Selecione o código...</option>
+                    </select>
+                </div>
+
+                <div>                    <label class="block text-lg font-semibold text-gray-700 mb-2">�� Emails para Notificação</label>
                     <div id="emails-container" class="space-y-2">
                         <input type="email" class="email-input w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary" 
                                placeholder="email@exemplo.com">
@@ -205,11 +222,9 @@
                 <div>
                     <label class="block text-lg font-semibold text-gray-700 mb-2">❓ Motivo do Cancelamento</label>
                     <select id="motivo-cancelamento" class="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
-                        <option value="1">Data de emissão incorreta</option>
+                        <option value="1">Erro na emissão</option>
                         <option value="2">Serviço não prestado</option>
-                        <option value="3">Valor incorreto</option>
-                        <option value="4">Duplicidade</option>
-                        <option value="5">Outros</option>
+                        <option value="9">Outros</option>
                     </select>
                 </div>
 
@@ -246,7 +261,58 @@
             </button>
 
             <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">📋 Minhas Notas</h2>
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">📋 Minhas Notas</h2>
+                
+                <!-- Filtros de Busca -->
+                <div class="bg-gray-50 p-4 rounded-lg mb-6 space-y-4">
+                    <h3 class="font-semibold text-gray-700 mb-3">🔍 Filtros de Busca</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Busca por Ano -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">📅 Buscar por Ano</label>
+                            <select id="filtro-ano" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
+                                <option value="">Todos os períodos</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Busca todas as notas do ano</p>
+                        </div>
+
+                        <!-- Data Início -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">📆 Data Início</label>
+                            <input type="text" id="filtro-data-inicio" placeholder="DD/MM/AAAA" 
+                                   class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                                   maxlength="10">
+                            <p class="text-xs text-gray-500 mt-1">Máximo 30 dias entre datas</p>
+                        </div>
+
+                        <!-- Data Fim -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">📆 Data Fim</label>
+                            <input type="text" id="filtro-data-fim" placeholder="DD/MM/AAAA" 
+                                   class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                                   maxlength="10">
+                            <p class="text-xs text-gray-500 mt-1">Formato: DD/MM/AAAA</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button onclick="aplicarFiltros()" class="flex-1 bg-primary hover:bg-primary-dark text-white font-semibold py-2 px-4 rounded-lg transition duration-200">
+                            🔍 Buscar
+                        </button>
+                        <button onclick="limparFiltros()" class="px-6 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 rounded-lg transition duration-200">
+                            🔄 Limpar
+                        </button>
+                    </div>
+
+                    <!-- Status da Busca -->
+                    <div id="status-busca" class="hidden">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+                            <span class="font-semibold text-blue-800">Filtros ativos:</span>
+                            <span id="status-busca-texto" class="text-blue-600"></span>
+                        </div>
+                    </div>
+                </div>
                 
                 <div id="notas-container" class="space-y-4">
                     <!-- Notas serão inseridas aqui dinamicamente -->
