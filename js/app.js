@@ -8,33 +8,104 @@ let totalPaginas = 1;
 document.addEventListener('DOMContentLoaded', () => {
     initEmissores();
     initTomadorSelect();
+    initCodigoTributacao();
     loadEmissorSalvo();
     verificarCredenciais(); // Verificar se precisa configurar credenciais
+    
+    // Inicializar filtros de data
+    populateYearSelect();
+    
+    // Adicionar event listeners para formatação automática de data
+    const dataInicio = document.getElementById('filtro-data-inicio');
+    const dataFim = document.getElementById('filtro-data-fim');
+    
+    if (dataInicio) {
+        dataInicio.addEventListener('input', (e) => formatarData(e.target));
+    }
+    
+    if (dataFim) {
+        dataFim.addEventListener('input', (e) => formatarData(e.target));
+    }
 });
 
 // Inicializar seletor de emissores
 function initEmissores() {
     const select = document.getElementById('emissor-select');
     
+    console.log('Inicializando emissores:', EMISSORES);
+    console.log('Select element:', select);
+    
     EMISSORES.forEach(emissor => {
         const option = document.createElement('option');
         option.value = emissor.id;
         option.textContent = emissor.nome;
         select.appendChild(option);
+        console.log('Emissor adicionado:', emissor.nome);
     });
 
     select.addEventListener('change', (e) => {
         if (e.target.value) {
-            localStorage.setItem(STORAGE_KEYS.emissorAtual, e.target.value);
+            trocarEmissor(e.target.value);
         }
     });
+}
+
+// Trocar emissor e verificar credenciais
+function trocarEmissor(emissorId) {
+    const emissor = EMISSORES.find(em => em.id === emissorId);
+    if (!emissor) {
+        showToast('Erro', 'Emissor não encontrado', 'error');
+        return;
+    }
+    
+    // Salvar emissor atual
+    api.setEmissorAtual(emissorId);
+    
+    // Verificar se tem credenciais para este emissor
+    const temCredenciais = api.temCredenciais(emissorId);
+    
+    if (!temCredenciais) {
+        // Mostrar modal de configuração para este emissor
+        mostrarModalConfigEmissor(emissor);
+    } else {
+        // Atualizar indicador visual
+        atualizarIndicadorEmissor(emissor);
+        
+        showToast(
+            'Emissor alterado',
+            `Agora usando: ${emissor.nome} (CNPJ: ${emissor.cnpj})`,
+            'success'
+        );
+    }
+}
+
+// Atualizar indicador visual do emissor
+function atualizarIndicadorEmissor(emissor) {
+    const select = document.getElementById('emissor-select');
+    const temCredenciais = api.temCredenciais(emissor.id);
+    
+    // Adicionar classe visual para indicar estado
+    if (temCredenciais) {
+        select.classList.remove('border-red-500');
+        select.classList.add('border-green-500');
+    } else {
+        select.classList.remove('border-green-500');
+        select.classList.add('border-red-500');
+    }
 }
 
 // Carregar emissor salvo
 function loadEmissorSalvo() {
     const emissorSalvo = localStorage.getItem(STORAGE_KEYS.emissorAtual);
     if (emissorSalvo) {
-        document.getElementById('emissor-select').value = emissorSalvo;
+        const select = document.getElementById('emissor-select');
+        select.value = emissorSalvo;
+        
+        // Atualizar indicador visual
+        const emissor = EMISSORES.find(e => e.id === emissorSalvo);
+        if (emissor) {
+            atualizarIndicadorEmissor(emissor);
+        }
     }
 }
 
@@ -46,10 +117,89 @@ function initTomadorSelect() {
         const cnpjOutroDiv = document.getElementById('cnpj-outro-div');
         if (e.target.value === 'outro') {
             cnpjOutroDiv.classList.remove('hidden');
+            // Limpar emails quando escolher "outro"
+            limparEmails();
         } else {
             cnpjOutroDiv.classList.add('hidden');
+            // Preencher emails automaticamente baseado no tomador
+            preencherEmailsPorTomador(e.target.value);
         }
     });
+}
+
+// Inicializar seletor de código de tributação
+function initCodigoTributacao() {
+    const select = document.getElementById('codigo-tributacao');
+    
+    CODIGOS_TRIBUTACAO.forEach(codigo => {
+        const option = document.createElement('option');
+        option.value = codigo.codigo;
+        option.textContent = `${codigo.codigo} - ${codigo.descricao}`;
+        select.appendChild(option);
+    });
+}
+
+// Preencher emails automaticamente baseado no tomador
+function preencherEmailsPorTomador(cnpjTomador) {
+    const emailsContainer = document.getElementById('emails-container');
+    
+    // Limpar emails existentes
+    emailsContainer.innerHTML = '';
+    
+    // Buscar emails para o tomador
+    const emails = EMAILS_POR_TOMADOR[cnpjTomador] || [];
+    
+    if (emails.length > 0) {
+        // Adicionar campos com os emails pré-preenchidos
+        emails.forEach(email => {
+            criarCampoEmail(emailsContainer, email);
+        });
+        
+        showToast(
+            'Emails preenchidos',
+            `${emails.length} email(s) adicionado(s) automaticamente para este tomador`,
+            'info'
+        );
+    } else {
+        // Se não houver emails cadastrados, adicionar campo vazio
+        criarCampoEmail(emailsContainer, '');
+    }
+}
+
+// Criar campo de email com botão de remover
+function criarCampoEmail(container, valorInicial = '') {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'flex gap-2 items-center';
+    
+    const input = document.createElement('input');
+    input.type = 'email';
+    input.className = 'email-input flex-1 p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary';
+    input.placeholder = 'email@exemplo.com';
+    input.value = valorInicial;
+    
+    const btnRemover = document.createElement('button');
+    btnRemover.type = 'button';
+    btnRemover.className = 'bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-4 rounded-lg transition duration-200 text-xl';
+    btnRemover.innerHTML = '×';
+    btnRemover.title = 'Remover email';
+    btnRemover.onclick = () => {
+        wrapper.remove();
+        // Se não houver mais campos, adicionar um vazio
+        if (container.children.length === 0) {
+            criarCampoEmail(container, '');
+        }
+    };
+    
+    wrapper.appendChild(input);
+    wrapper.appendChild(btnRemover);
+    container.appendChild(wrapper);
+}
+
+// Limpar emails
+function limparEmails() {
+    const emailsContainer = document.getElementById('emails-container');
+    emailsContainer.innerHTML = '';
+    criarCampoEmail(emailsContainer, '');
 }
 
 // Navegação entre telas
@@ -67,6 +217,14 @@ function showScreen(screenName) {
     if (screenName === 'list') {
         paginaAtual = 1;
         carregarNotas();
+    }
+    
+    // Inicializar campo de email ao abrir tela de emissão
+    if (screenName === 'emit') {
+        const emailsContainer = document.getElementById('emails-container');
+        if (emailsContainer.children.length === 0) {
+            criarCampoEmail(emailsContainer, '');
+        }
     }
 }
 
@@ -113,11 +271,7 @@ function showToast(message, details = '', type = 'success') {
 // Adicionar campo de email (emissão)
 function addEmailInput() {
     const container = document.getElementById('emails-container');
-    const input = document.createElement('input');
-    input.type = 'email';
-    input.className = 'email-input w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary';
-    input.placeholder = 'email@exemplo.com';
-    container.appendChild(input);
+    criarCampoEmail(container, '');
 }
 
 // Adicionar campo de email (cancelamento)
@@ -149,6 +303,13 @@ function validarEmissor() {
         return false;
     }
     return true;
+}
+
+// Formatar CNPJ (00.000.000/0000-00)
+function formatarCNPJ(cnpj) {
+    const cleaned = cnpj.replace(/\D/g, '');
+    if (cleaned.length !== 14) return cnpj;
+    return cleaned.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
 }
 
 // EMITIR NOTA
@@ -191,6 +352,12 @@ async function emitirNota() {
         return;
     }
 
+    const codigoTributacao = document.getElementById('codigo-tributacao');
+    if (!codigoTributacao.value) {
+        showToast('Código de tributação obrigatório', 'Selecione o código de tributação do serviço', 'error');
+        return;
+    }
+
     const emails = collectEmails('email-input');
     if (emails.length === 0) {
         // Se não houver email digitado, usar o email das credenciais
@@ -205,11 +372,12 @@ async function emitirNota() {
 
     // Montar dados
     const dados = {
-        cnpj_tomador: cnpjTomador,
+        cnpj_tomador: formatarCNPJ(cnpjTomador),
         municipio_prestacao: municipio.value.trim(),
         descricao_servico: descricao.value.trim(),
         valor_servico: parseFloat(valor.value),
         emitir_automaticamente: true,
+        codigo_tributacao: codigoTributacao.value,
         emails_notificacao: emails
     };
 
@@ -229,11 +397,13 @@ async function emitirNota() {
             tomadorSelect.value = '';
             descricao.value = '';
             valor.value = '';
+            codigoTributacao.value = '';
             document.getElementById('cnpj-outro-div').classList.add('hidden');
-            document.querySelectorAll('.email-input').forEach((input, index) => {
-                if (index === 0) input.value = '';
-                else input.remove();
-            });
+            
+            // Limpar emails e deixar um campo vazio
+            const emailsContainer = document.getElementById('emails-container');
+            emailsContainer.innerHTML = '';
+            criarCampoEmail(emailsContainer, '');
 
             // Voltar para home após 2 segundos
             setTimeout(() => showScreen('home'), 2000);
@@ -327,11 +497,30 @@ async function carregarNotas() {
     container.innerHTML = '<p class="text-center text-gray-500">Carregando...</p>';
 
     try {
-        const resultado = await api.listarNotas(paginaAtual);
+        const resultado = await api.listarNotas(paginaAtual, 15, filtrosAtivos);
+
+        // Debug: Log da estrutura de resposta da API
+        console.log('Resposta da API:', resultado);
+        console.log('Total de notas retornadas:', resultado.notas?.length);
+        console.log('Página atual:', paginaAtual);
+        console.log('Filtros aplicados:', filtrosAtivos);
 
         if (resultado.sucesso && resultado.notas && resultado.notas.length > 0) {
             renderNotas(resultado.notas);
-            totalPaginas = Math.ceil(resultado.total / 15);
+            
+            // Calcular total de páginas
+            if (resultado.total_paginas) {
+                totalPaginas = resultado.total_paginas;
+            } else if (resultado.total && resultado.total > resultado.notas.length) {
+                totalPaginas = Math.ceil(resultado.total / 15);
+            } else {
+                if (resultado.notas.length >= 15) {
+                    totalPaginas = paginaAtual + 1;
+                } else {
+                    totalPaginas = paginaAtual;
+                }
+            }
+            
             updatePagination();
         } else {
             // Tentar cache se não houver notas
@@ -413,25 +602,214 @@ function nextPage() {
     }
 }
 
-// CONFIGURAÇÃO DE CREDENCIAIS
+// FILTROS DE BUSCA DE NOTAS
 
-// Verificar se usuário já configurou credenciais
-function verificarCredenciais() {
-    const credenciais = api.getCredenciais();
-    if (!credenciais) {
-        mostrarModalConfig();
+// Estado dos filtros
+let filtrosAtivos = {};
+
+function populateYearSelect() {
+    const select = document.getElementById('filtro-ano');
+    const anoAtual = new Date().getFullYear();
+    
+    // Adicionar opção vazia
+    select.innerHTML = '<option value="">Todos os períodos</option>';
+    
+    // Adicionar últimos 5 anos
+    for (let i = 0; i < 5; i++) {
+        const ano = anoAtual - i;
+        const option = document.createElement('option');
+        option.value = ano;
+        option.textContent = ano;
+        select.appendChild(option);
     }
 }
 
-// Mostrar modal de configuração
-function mostrarModalConfig() {
-    document.getElementById('config-modal').classList.remove('hidden');
+function formatarData(input) {
+    let value = input.value.replace(/\D/g, '');
+    if (value.length >= 2) {
+        value = value.substring(0, 2) + '/' + value.substring(2);
+    }
+    if (value.length >= 5) {
+        value = value.substring(0, 5) + '/' + value.substring(5, 9);
+    }
+    input.value = value;
 }
 
-// Salvar credenciais
+function validarData(dataStr) {
+    if (!dataStr) return true; // Vazio é válido
+    
+    const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+    const match = dataStr.match(regex);
+    
+    if (!match) return false;
+    
+    const dia = parseInt(match[1]);
+    const mes = parseInt(match[2]);
+    const ano = parseInt(match[3]);
+    
+    if (mes < 1 || mes > 12) return false;
+    if (dia < 1 || dia > 31) return false;
+    if (ano < 2000 || ano > 2100) return false;
+    
+    return true;
+}
+
+function aplicarFiltros() {
+    const ano = document.getElementById('filtro-ano').value;
+    const dataInicio = document.getElementById('filtro-data-inicio').value;
+    const dataFim = document.getElementById('filtro-data-fim').value;
+    
+    // Validar datas
+    if (dataInicio && !validarData(dataInicio)) {
+        showToast('Data inválida', 'Data de início em formato inválido (use DD/MM/AAAA)', 'error');
+        return;
+    }
+    
+    if (dataFim && !validarData(dataFim)) {
+        showToast('Data inválida', 'Data de fim em formato inválido (use DD/MM/AAAA)', 'error');
+        return;
+    }
+    
+    // Verificar período de 30 dias se ambas as datas forem informadas
+    if (dataInicio && dataFim) {
+        const [dia1, mes1, ano1] = dataInicio.split('/').map(Number);
+        const [dia2, mes2, ano2] = dataFim.split('/').map(Number);
+        const d1 = new Date(ano1, mes1 - 1, dia1);
+        const d2 = new Date(ano2, mes2 - 1, dia2);
+        const diffDias = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24));
+        
+        if (diffDias > 30) {
+            showToast('Período inválido', 'O período entre as datas não pode ser maior que 30 dias', 'error');
+            return;
+        }
+        
+        if (diffDias < 0) {
+            showToast('Período inválido', 'Data de início deve ser anterior à data de fim', 'error');
+            return;
+        }
+    }
+    
+    // Construir filtros
+    filtrosAtivos = {};
+    
+    if (ano) {
+        filtrosAtivos.ano = parseInt(ano);
+        // Limpar campos de data se ano foi selecionado
+        document.getElementById('filtro-data-inicio').value = '';
+        document.getElementById('filtro-data-fim').value = '';
+    } else if (dataInicio && dataFim) {
+        filtrosAtivos.data_inicio = dataInicio;
+        filtrosAtivos.data_fim = dataFim;
+    } else if (dataInicio || dataFim) {
+        showToast('Filtro incompleto', 'Informe tanto a data de início quanto a de fim, ou selecione um ano', 'warning');
+        return;
+    }
+    
+    // Atualizar status da busca
+    atualizarStatusBusca();
+    
+    // Resetar paginação e buscar
+    paginaAtual = 1;
+    carregarNotas();
+}
+
+function limparFiltros() {
+    document.getElementById('filtro-ano').value = '';
+    document.getElementById('filtro-data-inicio').value = '';
+    document.getElementById('filtro-data-fim').value = '';
+    filtrosAtivos = {};
+    
+    // Esconder status
+    document.getElementById('status-busca').classList.add('hidden');
+    
+    // Resetar paginação e buscar
+    paginaAtual = 1;
+    carregarNotas();
+}
+
+function atualizarStatusBusca() {
+    const statusDiv = document.getElementById('status-busca');
+    const statusTexto = document.getElementById('status-busca-texto');
+    
+    if (Object.keys(filtrosAtivos).length === 0) {
+        statusDiv.classList.add('hidden');
+        return;
+    }
+    
+    let texto = '';
+    if (filtrosAtivos.ano) {
+        texto = `Ano: ${filtrosAtivos.ano} (todas as notas do ano)`;
+    } else if (filtrosAtivos.data_inicio && filtrosAtivos.data_fim) {
+        texto = `Período: ${filtrosAtivos.data_inicio} até ${filtrosAtivos.data_fim}`;
+    }
+    
+    statusTexto.textContent = texto;
+    statusDiv.classList.remove('hidden');
+}
+
+// CONFIGURAÇÃO DE CREDENCIAIS
+
+// Verificar se usuário já configurou credenciais do emissor atual
+function verificarCredenciais() {
+    const emissorAtual = api.getEmissorAtual();
+    
+    // Se não tem emissor selecionado, não fazer nada
+    // (será configurado quando o usuário selecionar)
+    if (!emissorAtual) {
+        return;
+    }
+    
+    // Verificar se o emissor atual tem credenciais
+    const temCredenciais = api.temCredenciais(emissorAtual.id);
+    if (!temCredenciais) {
+        mostrarModalConfigEmissor(emissorAtual);
+    }
+}
+
+// Mostrar modal de configuração para um emissor específico
+function mostrarModalConfigEmissor(emissor) {
+    const modal = document.getElementById('config-modal');
+    const titulo = modal.querySelector('h2');
+    
+    // Atualizar título com nome do emissor
+    titulo.textContent = `🔐 Configurar ${emissor.nome}`;
+    
+    // Limpar campos
+    document.getElementById('config-senha').value = '';
+    
+    // Tentar preencher com valores existentes (se houver)
+    const credenciaisExistentes = api.getCredenciais(emissor.id);
+    if (credenciaisExistentes) {
+        document.getElementById('config-senha').value = credenciaisExistentes.senha || '';
+    }
+    
+    // Guardar emissor no modal para usar no save
+    modal.dataset.emissorId = emissor.id;
+    
+    modal.classList.remove('hidden');
+}
+
+// Mostrar configuração do emissor atual (via botão)
+function mostrarConfigEmissorAtual() {
+    const emissor = api.getEmissorAtual();
+    if (!emissor) {
+        showToast('Selecione um emissor', 'Escolha o emissor primeiro', 'warning');
+        return;
+    }
+    mostrarModalConfigEmissor(emissor);
+}
+
+// Salvar credenciais do emissor
 function salvarCredenciais() {
+    const modal = document.getElementById('config-modal');
+    const emissorId = modal.dataset.emissorId;
+    
+    if (!emissorId) {
+        showToast('Erro', 'Emissor não identificado', 'error');
+        return;
+    }
+    
     const senha = document.getElementById('config-senha').value.trim();
-    const email = document.getElementById('config-email').value.trim();
 
     // Validações
     if (!senha) {
@@ -439,27 +817,29 @@ function salvarCredenciais() {
         return;
     }
 
-    if (!email) {
-        showToast('Email obrigatório', 'Digite um email para notificações', 'error');
-        return;
+    try {
+        // Salvar credenciais para este emissor
+        api.salvarCredenciais(emissorId, senha);
+
+        // Fechar modal
+        modal.classList.add('hidden');
+        delete modal.dataset.emissorId;
+
+        // Limpar campos
+        document.getElementById('config-senha').value = '';
+
+        // Atualizar indicador visual
+        const emissor = EMISSORES.find(e => e.id === emissorId);
+        if (emissor) {
+            atualizarIndicadorEmissor(emissor);
+        }
+
+        showToast(
+            '✅ Credenciais salvas!', 
+            `${emissor.nome} configurado com sucesso`, 
+            'success'
+        );
+    } catch (error) {
+        showToast('Erro ao salvar', error.message, 'error');
     }
-
-    // Validar email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        showToast('Email inválido', 'Digite um email válido', 'error');
-        return;
-    }
-
-    // Salvar credenciais
-    api.salvarCredenciais(senha, email);
-
-    // Fechar modal
-    document.getElementById('config-modal').classList.add('hidden');
-
-    // Limpar campos
-    document.getElementById('config-senha').value = '';
-    document.getElementById('config-email').value = '';
-
-    showToast('✅ Credenciais salvas!', 'Você já pode usar o sistema', 'success');
 }

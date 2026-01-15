@@ -32,8 +32,14 @@ jobs:
       - name: Check for hardcoded credentials
         run: |
           echo "🔐 Verificando credenciais hardcoded..."
-          if grep -r "senha.*:" js/ --include="*.js" | grep -v "//"; then
-            echo "❌ ERRO: Credenciais encontradas no código!"
+          # Procurar por senhas com valores literais (ex: senha: '123456')
+          if grep -rE "senha\s*:\s*['\"].*['\"]" js/ --include="*.js" | grep -v "//"; then
+            echo "❌ ERRO: Credenciais hardcoded encontradas!"
+            exit 1
+          fi
+          # Procurar por tokens/keys hardcoded
+          if grep -rE "(api[_-]?key|token|password)\s*:\s*['\"].*['\"]" js/ --include="*.js" | grep -v "//"; then
+            echo "❌ ERRO: Tokens/Keys hardcoded encontrados!"
             exit 1
           fi
           echo "✅ Nenhuma credencial hardcoded encontrada"
