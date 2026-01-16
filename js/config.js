@@ -1,8 +1,52 @@
 // Configurações da aplicação
 
-// URL da API
+// Detectar ambiente baseado na URL
+function detectarAmbiente() {
+    const pathname = window.location.pathname;
+    
+    // Detectar ambiente pelo path
+    if (pathname.includes('/dev/') || pathname.includes('/dev')) {
+        return 'dev';
+    } else if (pathname.includes('/hom/') || pathname.includes('/hom')) {
+        return 'hom';
+    } else {
+        // Path raiz ou qualquer outro = produção
+        return 'prod';
+    }
+}
+
+// Configurações de API por ambiente
+const AMBIENTE_CONFIGS = {
+    dev: {
+        nome: 'Desenvolvimento',
+        baseURL: 'https://nfse-api.onrender.com',
+        cor: '#ffc107' // Amarelo
+    },
+    hom: {
+        nome: 'Homologação',
+        baseURL: 'https://nfse-api-hom.onrender.com',
+        cor: '#ff9800' // Laranja
+    },
+    prod: {
+        nome: 'Produção',
+        baseURL: 'https://nfse-api-prd.onrender.com',
+        cor: '#4caf50' // Verde
+    }
+};
+
+// Detectar ambiente atual
+const AMBIENTE_ATUAL = detectarAmbiente();
+const AMBIENTE_CONFIG = AMBIENTE_CONFIGS[AMBIENTE_ATUAL];
+
+console.log(`🌍 Ambiente detectado: ${AMBIENTE_CONFIG.nome} (${AMBIENTE_ATUAL})`);
+console.log(`🔗 API: ${AMBIENTE_CONFIG.baseURL}`);
+
+// URL da API (dinâmica baseada no ambiente)
 const API_CONFIG = {
-    baseURL: 'https://nfse-api.onrender.com',
+    ambiente: AMBIENTE_ATUAL,
+    ambienteNome: AMBIENTE_CONFIG.nome,
+    baseURL: AMBIENTE_CONFIG.baseURL,
+    cor: AMBIENTE_CONFIG.cor,
     endpoints: {
         emit: '/api/v1/nfse/emit',
         cancel: '/api/v1/nfse/cancel',
