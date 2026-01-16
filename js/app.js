@@ -6,6 +6,7 @@ let totalPaginas = 1;
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
+    mostrarIndicadorAmbiente(); // Mostrar badge do ambiente
     initEmissores();
     initTomadorSelect();
     initCodigoTributacao();
@@ -27,6 +28,22 @@ document.addEventListener('DOMContentLoaded', () => {
         dataFim.addEventListener('input', (e) => formatarData(e.target));
     }
 });
+
+// Mostrar indicador de ambiente
+function mostrarIndicadorAmbiente() {
+    const badge = document.getElementById('ambiente-badge');
+    const nomeSpan = document.getElementById('ambiente-nome');
+    
+    if (badge && nomeSpan && API_CONFIG.ambiente !== 'prod') {
+        // Apenas mostrar badge para ambientes não-produção
+        nomeSpan.textContent = `🧪 ${API_CONFIG.ambienteNome}`;
+        badge.style.backgroundColor = API_CONFIG.cor;
+        badge.style.color = '#fff';
+        badge.style.display = 'inline-block';
+        
+        console.log(`🎨 Badge de ambiente exibido: ${API_CONFIG.ambienteNome}`);
+    }
+}
 
 // Inicializar seletor de emissores
 function initEmissores() {
