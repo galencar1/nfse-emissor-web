@@ -521,9 +521,13 @@ async function carregarNotas() {
         console.log('Total de notas retornadas:', resultado.notas?.length);
         console.log('Página atual:', paginaAtual);
         console.log('Filtros aplicados:', filtrosAtivos);
+        console.log('Valor total:', resultado.valor_total);
 
         if (resultado.sucesso && resultado.notas && resultado.notas.length > 0) {
             renderNotas(resultado.notas);
+            
+            // Exibir valor total
+            exibirValorTotal(resultado.valor_total, resultado.total, filtrosAtivos);
             
             // Calcular total de páginas
             if (resultado.total_paginas) {
@@ -540,6 +544,9 @@ async function carregarNotas() {
             
             updatePagination();
         } else {
+            // Esconder valor total se não há notas
+            document.getElementById('valor-total-container').classList.add('hidden');
+            
             // Tentar cache se não houver notas
             const cache = api.getNotasFromCache();
             if (cache && cache.notas) {
@@ -550,6 +557,9 @@ async function carregarNotas() {
             }
         }
     } catch (error) {
+        // Esconder valor total em caso de erro
+        document.getElementById('valor-total-container').classList.add('hidden');
+        
         // Tentar cache em caso de erro
         const cache = api.getNotasFromCache();
         if (cache && cache.notas) {
@@ -675,6 +685,7 @@ function aplicarFiltros() {
     const ano = document.getElementById('filtro-ano').value;
     const dataInicio = document.getElementById('filtro-data-inicio').value;
     const dataFim = document.getElementById('filtro-data-fim').value;
+    const status = document.getElementById('filtro-status').value;
     
     // Validar datas
     if (dataInicio && !validarData(dataInicio)) {
@@ -722,6 +733,11 @@ function aplicarFiltros() {
         return;
     }
     
+    // Adicionar filtro de status
+    if (status) {
+        filtrosAtivos.status = status;
+    }
+    
     // Atualizar status da busca
     atualizarStatusBusca();
     
@@ -734,10 +750,12 @@ function limparFiltros() {
     document.getElementById('filtro-ano').value = '';
     document.getElementById('filtro-data-inicio').value = '';
     document.getElementById('filtro-data-fim').value = '';
+    document.getElementById('filtro-status').value = '';
     filtrosAtivos = {};
     
-    // Esconder status
+    // Esconder status e valor total
     document.getElementById('status-busca').classList.add('hidden');
+    document.getElementById('valor-total-container').classList.add('hidden');
     
     // Resetar paginação e buscar
     paginaAtual = 1;
@@ -754,14 +772,51 @@ function atualizarStatusBusca() {
     }
     
     let texto = '';
+    const partes = [];
+    
     if (filtrosAtivos.ano) {
-        texto = `Ano: ${filtrosAtivos.ano} (todas as notas do ano)`;
+        partes.push(`Ano: ${filtrosAtivos.ano}`);
     } else if (filtrosAtivos.data_inicio && filtrosAtivos.data_fim) {
-        texto = `Período: ${filtrosAtivos.data_inicio} até ${filtrosAtivos.data_fim}`;
+        partes.push(`Período: ${filtrosAtivos.data_inicio} até ${filtrosAtivos.data_fim}`);
     }
+    
+    if (filtrosAtivos.status) {
+        const statusLabel = filtrosAtivos.status === 'emitidas' ? '✅ Emitidas' : '⚠️ Canceladas';
+        partes.push(`Status: ${statusLabel}`);
+    }
+    
+    texto = partes.join(' | ');
     
     statusTexto.textContent = texto;
     statusDiv.classList.remove('hidden');
+}
+
+function exibirValorTotal(valorTotal, quantidadeNotas, filtros) {
+    const container = document.getElementById('valor-total-container');
+    const valorElemento = document.getElementById('valor-total-valor');
+    const quantidadeElemento = document.getElementById('valor-total-quantidade');
+    const filtroElemento = document.getElementById('valor-total-filtro');
+    
+    // Formatar valor para moeda brasileira
+    const valorFormatado = valorTotal.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    });
+    
+    valorElemento.textContent = valorFormatado;
+    quantidadeElemento.textContent = quantidadeNotas;
+    
+    // Adicionar texto sobre o filtro
+    let textoFiltro = '';
+    if (filtros.status === 'emitidas') {
+        textoFiltro = ' emitidas';
+    } else if (filtros.status === 'canceladas') {
+        textoFiltro = ' canceladas';
+    }
+    filtroElemento.textContent = textoFiltro;
+    
+    // Mostrar container
+    container.classList.remove('hidden');
 }
 
 // CONFIGURAÇÃO DE CREDENCIAIS

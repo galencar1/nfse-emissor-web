@@ -36,18 +36,38 @@ Acesse: [https://[seu-usuario].github.io/nfse-emissor-web](https://[seu-usuario]
 
 ## 📦 Desenvolvimento Local
 
+### Início Rápido (Recomendado)
+
+Use o script automático que inicia backend e frontend juntos:
+
 ```bash
-# Clone o repositório
-git clone https://github.com/[seu-usuario]/nfse-emissor-web.git
+./start-local-dev.sh
+```
 
-# Entre na pasta
-cd nfse-emissor-web
+Isso irá:
+- ✅ Iniciar o backend em `http://localhost:8000`
+- ✅ Iniciar o frontend em `http://localhost:8080`
+- ✅ Configurar o frontend para usar o backend local automaticamente
 
-# Abra com Live Server ou sirva com qualquer servidor HTTP
-# Exemplo com Python:
-python -m http.server 8080
+### Manual
 
-# Acesse http://localhost:8080
+#### Backend (Python)
+```bash
+cd /mnt/programas/Projetos/Python/nfse-api-client
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+#### Frontend
+```bash
+cd /mnt/programas/Projetos/WebApp/nfse-emissor-web
+python3 -m http.server 8080
+```
+
+Acesse: `http://localhost:8080`
+
+🔍 **O frontend detecta automaticamente que está rodando localmente e usa `http://localhost:8000` como API.**
+
+📚 Para mais detalhes, veja: [LOCAL_DEV.md](LOCAL_DEV.md)
 ```
 
 ## 🔐 Configuração
