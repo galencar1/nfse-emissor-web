@@ -1,7 +1,22 @@
 // Configurações da aplicação
 
+// Detectar se está rodando localmente
+function isLocalhost() {
+    const hostname = window.location.hostname;
+    return hostname === 'localhost' || 
+           hostname === '127.0.0.1' || 
+           hostname.startsWith('192.168.') ||
+           hostname.startsWith('10.') ||
+           hostname.endsWith('.local');
+}
+
 // Detectar ambiente baseado na URL
 function detectarAmbiente() {
+    // Se está rodando localmente, usar ambiente 'local'
+    if (isLocalhost()) {
+        return 'local';
+    }
+    
     const pathname = window.location.pathname;
     
     // Detectar ambiente pelo path
@@ -17,6 +32,11 @@ function detectarAmbiente() {
 
 // Configurações de API por ambiente
 const AMBIENTE_CONFIGS = {
+    local: {
+        nome: 'Local (Desenvolvimento)',
+        baseURL: 'http://localhost:8000',
+        cor: '#9c27b0' // Roxo
+    },
     dev: {
         nome: 'Desenvolvimento',
         baseURL: 'https://nfse-api.onrender.com',

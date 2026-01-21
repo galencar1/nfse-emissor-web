@@ -9,15 +9,15 @@
     <title>Emissor NFS-e</title>
     
     <!-- PWA -->
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg">
-    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="icon" type="image/svg+xml" href="../assets/icons/icon.svg">
+    <link rel="apple-touch-icon" href="../assets/icons/icon-192.png">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="../css/styles.css">
     
     <!-- Tailwind Config -->
     <script>
@@ -272,18 +272,7 @@
                 <div class="bg-gray-50 p-4 rounded-lg mb-6 space-y-4">
                     <h3 class="font-semibold text-gray-700 mb-3">🔍 Filtros de Busca</h3>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <!-- Filtro de Status -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">📊 Status</label>
-                            <select id="filtro-status" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
-                                <option value="">Todas as notas</option>
-                                <option value="emitidas">✅ Emitidas</option>
-                                <option value="canceladas">⚠️ Canceladas</option>
-                            </select>
-                            <p class="text-xs text-gray-500 mt-1">Filtrar por status</p>
-                        </div>
-                        
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <!-- Busca por Ano -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">📅 Buscar por Ano</label>
@@ -297,7 +286,6 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">📆 Data Início</label>
                             <input type="text" id="filtro-data-inicio" placeholder="DD/MM/AAAA" 
-                                   oninput="formatarData(this)"
                                    class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
                                    maxlength="10">
                             <p class="text-xs text-gray-500 mt-1">Máximo 30 dias entre datas</p>
@@ -307,7 +295,6 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">📆 Data Fim</label>
                             <input type="text" id="filtro-data-fim" placeholder="DD/MM/AAAA" 
-                                   oninput="formatarData(this)"
                                    class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
                                    maxlength="10">
                             <p class="text-xs text-gray-500 mt-1">Formato: DD/MM/AAAA</p>
@@ -328,19 +315,6 @@
                         <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
                             <span class="font-semibold text-blue-800">Filtros ativos:</span>
                             <span id="status-busca-texto" class="text-blue-600"></span>
-                        </div>
-                    </div>
-                    
-                    <!-- Valor Total -->
-                    <div id="valor-total-container" class="hidden">
-                        <div class="bg-green-50 border-2 border-green-300 rounded-lg p-4">
-                            <div class="flex justify-between items-center">
-                                <span class="text-lg font-bold text-green-800">💰 Valor Total:</span>
-                                <span id="valor-total-valor" class="text-2xl font-bold text-green-600">R$ 0,00</span>
-                            </div>
-                            <p class="text-xs text-green-600 mt-1">
-                                <span id="valor-total-quantidade">0</span> nota(s) <span id="valor-total-filtro"></span>
-                            </p>
                         </div>
                     </div>
                 </div>
@@ -375,15 +349,15 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/config.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/app.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/app.js"></script>
     
     <!-- PWA Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
+                navigator.serviceWorker.register('../service-worker.js')
                     .then(reg => console.log('Service Worker registrado:', reg))
                     .catch(err => console.log('Erro ao registrar Service Worker:', err));
             });
