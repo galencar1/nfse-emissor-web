@@ -193,6 +193,9 @@ class NFSeAPI {
         if (filtros.ano) {
             params.append('ano', filtros.ano.toString());
         }
+        if (filtros.status) {
+            params.append('status', filtros.status);
+        }
 
         const url = `${this.baseURL}${API_CONFIG.endpoints.list}?${params.toString()}`;
         
