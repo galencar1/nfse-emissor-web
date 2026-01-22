@@ -272,7 +272,18 @@
                 <div class="bg-gray-50 p-4 rounded-lg mb-6 space-y-4">
                     <h3 class="font-semibold text-gray-700 mb-3">🔍 Filtros de Busca</h3>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <!-- Filtro de Status -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">📊 Status</label>
+                            <select id="filtro-status" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
+                                <option value="">Todas as notas</option>
+                                <option value="emitidas">✅ Emitidas</option>
+                                <option value="canceladas">⚠️ Canceladas</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Filtrar por status</p>
+                        </div>
+                        
                         <!-- Busca por Ano -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">📅 Buscar por Ano</label>
@@ -315,6 +326,19 @@
                         <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
                             <span class="font-semibold text-blue-800">Filtros ativos:</span>
                             <span id="status-busca-texto" class="text-blue-600"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Valor Total -->
+                    <div id="valor-total-container" class="hidden">
+                        <div class="bg-green-50 border-2 border-green-300 rounded-lg p-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-lg font-bold text-green-800">💰 Valor Total:</span>
+                                <span id="valor-total-valor" class="text-2xl font-bold text-green-600">R$ 0,00</span>
+                            </div>
+                            <p class="text-xs text-green-600 mt-1">
+                                <span id="valor-total-quantidade">0</span> nota(s) <span id="valor-total-filtro"></span>
+                            </p>
                         </div>
                     </div>
                 </div>
