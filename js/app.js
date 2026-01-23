@@ -580,6 +580,9 @@ function renderNotas(notas) {
         const isCancelada = nota.situacao.includes('cancelada');
         const statusColor = isCancelada ? 'bg-red-50 border-red-300' : 'bg-green-50 border-green-300';
         const statusIcon = isCancelada ? '⚠️' : '✅';
+        
+        // Extrair chave de acesso se estiver presente
+        const chaveAcesso = nota.chave_acesso || nota.chave_encrypted || '';
 
         const card = document.createElement('div');
         card.className = `border-2 ${statusColor} rounded-lg p-4`;
@@ -596,12 +599,23 @@ function renderNotas(notas) {
             <p class="text-sm font-semibold mt-2 ${isCancelada ? 'text-red-600' : 'text-green-600'}">
                 ${nota.situacao}
             </p>
+            ${chaveAcesso ? `
+            <div class="mt-3 flex gap-2">
+                <button onclick="downloadNotaPDF('${chaveAcesso}', '${nota.numero_nfse}')" 
+                        class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Baixar PDF
+                </button>
+            </div>
+            ` : ''}
             <details class="mt-3">
                 <summary class="cursor-pointer text-primary hover:text-primary-dark font-semibold">
                     📄 Ver chave da nota
                 </summary>
                 <div class="mt-2 p-3 bg-gray-100 rounded text-xs break-all">
-                    <code>${nota.chave_encrypted}</code>
+                    <code>${nota.chave_encrypted || chaveAcesso}</code>
                 </div>
             </details>
         `;
@@ -913,5 +927,45 @@ function salvarCredenciais() {
         );
     } catch (error) {
         showToast('Erro ao salvar', error.message, 'error');
+    }
+}
+
+// DOWNLOAD DO PDF DA NOTA
+async function downloadNotaPDF(chaveAcesso, numeroNfse) {
+    if (!validarEmissor()) return;
+
+    try {
+        showLoading(`Baixando PDF da nota #${numeroNfse}...`);
+        
+        // Chamar API para obter o PDF
+        const pdfBlob = await api.downloadPDF(chaveAcesso);
+        
+        hideLoading();
+        
+        // Criar URL temporária para o blob
+        const url = window.URL.createObjectURL(pdfBlob);
+        
+        // Criar link temporário e clicar para download
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `NFSe_${numeroNfse}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Limpar
+        setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }, 100);
+        
+        showToast(
+            'Download concluído',
+            `PDF da nota #${numeroNfse} baixado com sucesso`,
+            'success'
+        );
+    } catch (error) {
+        hideLoading();
+        showToast('Erro ao baixar PDF', error.message, 'error');
+        console.error('Erro no download do PDF:', error);
     }
 }
