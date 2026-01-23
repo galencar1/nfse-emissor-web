@@ -9,15 +9,15 @@
     <title>Emissor NFS-e</title>
     
     <!-- PWA -->
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg">
-    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="icon" type="image/svg+xml" href="../assets/icons/icon.svg">
+    <link rel="apple-touch-icon" href="../assets/icons/icon-192.png">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="../css/styles.css">
     
     <!-- Tailwind Config -->
     <script>
@@ -52,22 +52,8 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-lg font-semibold text-gray-700 mb-2">🔑 Senha da API</label>
-                    <div class="relative">
-                        <input type="password" id="config-senha" placeholder="Digite sua senha" 
-                               class="w-full p-4 pr-12 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
-                        <button type="button" 
-                                onmousedown="togglePasswordVisibility('config-senha', 'toggle-password-icon', true)"
-                                onmouseup="togglePasswordVisibility('config-senha', 'toggle-password-icon', false)"
-                                onmouseleave="togglePasswordVisibility('config-senha', 'toggle-password-icon', false)"
-                                ontouchstart="togglePasswordVisibility('config-senha', 'toggle-password-icon', true)"
-                                ontouchend="togglePasswordVisibility('config-senha', 'toggle-password-icon', false)"
-                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none">
-                            <svg id="toggle-password-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                            </svg>
-                        </button>
-                    </div>
+                    <input type="password" id="config-senha" placeholder="Digite sua senha" 
+                           class="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
                     <p class="text-sm text-gray-500 mt-1">Senha de acesso ao sistema NFS-e</p>
                 </div>
 
@@ -85,67 +71,6 @@
                 <p class="text-xs text-gray-500 text-center mt-4">
                     🔒 Credenciais ficam salvas apenas no seu navegador por emissor. Cada empresa tem suas próprias credenciais.
                 </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Cancel Modal -->
-    <div id="cancel-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-bold text-gray-800">🗑️ Cancelar Nota</h2>
-                <button onclick="fecharModalCancelamento()" class="text-gray-500 hover:text-gray-700">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-            
-            <div class="space-y-4">
-                <!-- Info da Nota -->
-                <div class="bg-blue-50 p-3 rounded-lg">
-                    <p class="text-sm text-gray-600">NFS-e</p>
-                    <p class="text-lg font-bold text-gray-800" id="modal-cancel-numero"></p>
-                    <p class="text-sm text-gray-600 mt-1" id="modal-cancel-tomador"></p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">❓ Motivo do Cancelamento</label>
-                    <select id="modal-motivo-cancelamento" class="w-full p-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
-                        <option value="1">Erro na emissão</option>
-                        <option value="2">Serviço não prestado</option>
-                        <option value="9">Outros</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">📄 Justificativa (mínimo 15 caracteres)</label>
-                    <textarea id="modal-justificativa" rows="3" placeholder="Descreva o motivo do cancelamento..."
-                              class="w-full p-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"></textarea>
-                    <p class="text-xs text-gray-500 mt-1">Mínimo 15 caracteres</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">📧 Emails para Notificação</label>
-                    <div id="modal-emails-container" class="space-y-2">
-                        <input type="email" class="modal-email-input w-full p-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary" 
-                               placeholder="email@exemplo.com">
-                    </div>
-                    <button onclick="addModalEmailInput()" class="mt-2 text-primary hover:text-primary-dark font-semibold text-sm">
-                        + Adicionar outro email
-                    </button>
-                </div>
-
-                <div class="flex gap-2 pt-4">
-                    <button onclick="confirmarCancelamento()" 
-                            class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition duration-200">
-                        ❌ Confirmar Cancelamento
-                    </button>
-                    <button onclick="fecharModalCancelamento()" 
-                            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-4 rounded-lg transition duration-200">
-                        Cancelar
-                    </button>
-                </div>
             </div>
         </div>
     </div>
@@ -198,6 +123,11 @@
             <button onclick="showScreen('emit')" class="action-btn bg-green-500 hover:bg-green-600">
                 <span class="text-3xl">📝</span>
                 <span class="text-xl font-semibold">Emitir Nota</span>
+            </button>
+
+            <button onclick="showScreen('cancel')" class="action-btn bg-red-500 hover:bg-red-600">
+                <span class="text-3xl">🗑️</span>
+                <span class="text-xl font-semibold">Cancelar Nota</span>
             </button>
 
             <button onclick="showScreen('list')" class="action-btn bg-blue-500 hover:bg-blue-600">
@@ -336,16 +266,7 @@
             </button>
 
             <div class="bg-white rounded-lg shadow-md p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">📋 Minhas Notas</h2>
-                    <button onclick="limparCacheERecarregar()" 
-                            class="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                        </svg>
-                        Atualizar Cache
-                    </button>
-                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">📋 Minhas Notas</h2>
                 
                 <!-- Filtros de Busca -->
                 <div class="bg-gray-50 p-4 rounded-lg mb-6 space-y-4">
@@ -376,7 +297,6 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">📆 Data Início</label>
                             <input type="text" id="filtro-data-inicio" placeholder="DD/MM/AAAA" 
-                                   oninput="formatarData(this)"
                                    class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
                                    maxlength="10">
                             <p class="text-xs text-gray-500 mt-1">Máximo 30 dias entre datas</p>
@@ -386,7 +306,6 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">📆 Data Fim</label>
                             <input type="text" id="filtro-data-fim" placeholder="DD/MM/AAAA" 
-                                   oninput="formatarData(this)"
                                    class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
                                    maxlength="10">
                             <p class="text-xs text-gray-500 mt-1">Formato: DD/MM/AAAA</p>
@@ -454,15 +373,15 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/config.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/app.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/app.js"></script>
     
     <!-- PWA Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
+                navigator.serviceWorker.register('../service-worker.js')
                     .then(reg => console.log('Service Worker registrado:', reg))
                     .catch(err => console.log('Erro ao registrar Service Worker:', err));
             });
