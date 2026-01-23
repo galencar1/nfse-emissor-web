@@ -271,6 +271,33 @@ class NFSeAPI {
         // Retornar o blob do PDF
         return await response.blob();
     }
+
+    // Limpar cache de notas
+    async limparCache() {
+        const emissor = this.getEmissorAtual();
+        if (!emissor) {
+            throw new Error('Nenhum emissor selecionado');
+        }
+
+        const credenciais = this.getCredenciais();
+        if (!credenciais) {
+            throw new Error('Credenciais não configuradas. Configure suas credenciais primeiro.');
+        }
+
+        const url = `${this.baseURL}/api/v1/cache/clear`;
+        
+        const response = await fetch(url, {
+            method: 'DELETE',
+            headers: this.getHeaders(emissor, credenciais)
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.detail || error.mensagem || 'Erro ao limpar cache');
+        }
+
+        return await response.json();
+    }
 }
 
 // Instância global
