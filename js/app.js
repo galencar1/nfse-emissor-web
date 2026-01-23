@@ -29,6 +29,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Função para alternar visibilidade da senha
+function togglePasswordVisibility(inputId, iconId, show) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    
+    if (!input || !icon) return;
+    
+    if (show) {
+        input.type = 'text';
+        // Ícone de olho com traço (senha visível)
+        icon.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+        `;
+    } else {
+        input.type = 'password';
+        // Ícone de olho normal (senha oculta)
+        icon.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+        `;
+    }
+}
+
 // Mostrar indicador de ambiente
 function mostrarIndicadorAmbiente() {
     const badge = document.getElementById('ambiente-badge');
@@ -572,6 +595,41 @@ async function carregarNotas() {
     }
 }
 
+// Limpar cache e recarregar notas
+async function limparCacheERecarregar() {
+    if (!validarEmissor()) return;
+
+    try {
+        showLoading('Limpando cache e atualizando...');
+        
+        // Limpar cache no backend
+        const resultado = await api.limparCache();
+        
+        if (resultado.sucesso) {
+            // Resetar para primeira página
+            paginaAtual = 1;
+            
+            // Recarregar notas
+            await carregarNotas();
+            
+            hideLoading();
+            
+            showToast(
+                'Cache atualizado',
+                'Dados recarregados do servidor',
+                'success'
+            );
+        } else {
+            hideLoading();
+            showToast('Erro', resultado.mensagem || 'Não foi possível limpar o cache', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        showToast('Erro ao limpar cache', error.message, 'error');
+        console.error('Erro ao limpar cache:', error);
+    }
+}
+
 function renderNotas(notas) {
     const container = document.getElementById('notas-container');
     container.innerHTML = '';
@@ -608,6 +666,20 @@ function renderNotas(notas) {
                     </svg>
                     Baixar PDF
                 </button>
+                ${!isCancelada ? `
+                <button onclick='abrirModalCancelamento(${JSON.stringify({
+                    numero_nfse: nota.numero_nfse,
+                    tomador: nota.tomador,
+                    valor: nota.valor,
+                    chave_encrypted: nota.chave_encrypted || chaveAcesso
+                })})' 
+                        class="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Cancelar
+                </button>
+                ` : ''}
             </div>
             ` : ''}
             <details class="mt-3">
@@ -967,5 +1039,139 @@ async function downloadNotaPDF(chaveAcesso, numeroNfse) {
         hideLoading();
         showToast('Erro ao baixar PDF', error.message, 'error');
         console.error('Erro no download do PDF:', error);
+    }
+}
+
+// CANCELAMENTO DE NOTA VIA MODAL
+
+// Variável global para armazenar dados da nota sendo cancelada
+let notaParaCancelar = null;
+
+function abrirModalCancelamento(nota) {
+    if (!validarEmissor()) return;
+
+    // Armazenar dados da nota
+    notaParaCancelar = nota;
+
+    // Preencher informações da nota no modal
+    document.getElementById('modal-cancel-numero').textContent = `#${nota.numero_nfse}`;
+    document.getElementById('modal-cancel-tomador').textContent = nota.tomador;
+
+    // Limpar campos
+    document.getElementById('modal-motivo-cancelamento').value = '1';
+    document.getElementById('modal-justificativa').value = '';
+    
+    // Limpar e adicionar um campo de email vazio
+    const emailsContainer = document.getElementById('modal-emails-container');
+    emailsContainer.innerHTML = '<input type="email" class="modal-email-input w-full p-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary" placeholder="email@exemplo.com">';
+
+    // Mostrar modal
+    document.getElementById('cancel-modal').classList.remove('hidden');
+}
+
+function fecharModalCancelamento() {
+    document.getElementById('cancel-modal').classList.add('hidden');
+    notaParaCancelar = null;
+}
+
+function addModalEmailInput() {
+    const container = document.getElementById('modal-emails-container');
+    const emailInputs = container.querySelectorAll('.modal-email-input');
+    
+    if (emailInputs.length >= 5) {
+        showToast('Limite atingido', 'Máximo de 5 emails', 'warning');
+        return;
+    }
+    
+    const newInput = document.createElement('input');
+    newInput.type = 'email';
+    newInput.className = 'modal-email-input w-full p-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary';
+    newInput.placeholder = 'email@exemplo.com';
+    container.appendChild(newInput);
+}
+
+async function confirmarCancelamento() {
+    if (!validarEmissor()) return;
+    if (!notaParaCancelar) {
+        showToast('Erro', 'Nenhuma nota selecionada para cancelamento', 'error');
+        return;
+    }
+
+    const motivo = document.getElementById('modal-motivo-cancelamento').value;
+    const justificativa = document.getElementById('modal-justificativa').value.trim();
+
+    // Validações
+    if (!justificativa) {
+        showToast('Justificativa obrigatória', 'Explique o motivo do cancelamento', 'error');
+        return;
+    }
+
+    if (justificativa.length < 15) {
+        showToast('Justificativa muito curta', 'A justificativa deve ter no mínimo 15 caracteres', 'error');
+        return;
+    }
+
+    // Coletar emails
+    const emailInputs = document.querySelectorAll('.modal-email-input');
+    const emails = [];
+    emailInputs.forEach(input => {
+        const email = input.value.trim();
+        if (email) {
+            // Validar formato de email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (emailRegex.test(email)) {
+                emails.push(email);
+            }
+        }
+    });
+
+    if (emails.length === 0) {
+        // Se não houver email digitado, usar o email das credenciais
+        const credenciais = api.getCredenciais();
+        if (credenciais && credenciais.email) {
+            emails.push(credenciais.email);
+        } else {
+            showToast('Email obrigatório', 'Adicione pelo menos um email válido', 'error');
+            return;
+        }
+    }
+
+    // Montar dados
+    const dados = {
+        chave_encrypted: notaParaCancelar.chave_encrypted,
+        motivo_cancelamento: parseInt(motivo),
+        justificativa: justificativa,
+        emails_notificacao: emails
+    };
+    
+    // Guardar número da nota antes de fechar o modal (que limpa notaParaCancelar)
+    const numeroNfse = notaParaCancelar.numero_nfse;
+
+    try {
+        fecharModalCancelamento();
+        showLoading('Cancelando nota...');
+        
+        const resultado = await api.cancelarNota(dados);
+        
+        hideLoading();
+
+        if (resultado.sucesso) {
+            showToast(
+                '✅ Nota cancelada!',
+                `NFS-e #${numeroNfse} foi cancelada com sucesso`,
+                'success'
+            );
+
+            // Recarregar lista de notas após 1 segundo
+            setTimeout(() => {
+                carregarNotas();
+            }, 1000);
+        } else {
+            showToast('Erro ao cancelar', resultado.mensagem || 'Tente novamente', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        showToast('Erro no cancelamento', error.message, 'error');
+        console.error('Erro ao cancelar nota:', error);
     }
 }
